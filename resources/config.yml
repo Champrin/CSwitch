@@ -1,0 +1,24 @@
+LightsOut:
+ - 000-player
+ - 000-player
+ - 000-player
+OneToOne:
+ - 000-player
+ - 000-player
+ - 000-player
+Jigsaw:
+ - 000-player
+ - 000-player
+ - 000-player
+RemoveAll:
+ - 000-player
+ - 000-player
+ - 000-player
+BlockPlay_4:
+ - 000-player
+ - 000-player
+ - 000-player
+BlockPlay_3:
+ - 000-player
+ - 000-player
+ - 000-player
