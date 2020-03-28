@@ -21,10 +21,12 @@ public class BlockPlay_4 extends Game implements Listener {
     public BlockPlay_4(Room plugin) {
         this.plugin = plugin;
         this.game_type = plugin.game_type;
+        this.area = (int) this.plugin.data.get("area");
     }
 
     @EventHandler
     public void onTouch(PlayerInteractEvent event) {
+        if (this.plugin.finish) return;
         if (this.game_type.equals("BlockPlay_4")) {
             if (this.plugin.game != 1) return;
             Block block = event.getBlock();

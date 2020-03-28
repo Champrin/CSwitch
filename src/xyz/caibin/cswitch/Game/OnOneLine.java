@@ -9,9 +9,9 @@ import cn.nukkit.level.Level;
 import cn.nukkit.math.Vector3;
 import xyz.caibin.cswitch.Room;
 
-public class RemoveAll extends Game implements Listener
+public class OnOneLine extends Game implements Listener
 {
-    public RemoveAll(Room plugin) {
+    public OnOneLine(Room plugin) {
         this.plugin = plugin;
         this.game_type = plugin.game_type;
         this.area = (int) this.plugin.data.get("area");
@@ -36,7 +36,6 @@ public class RemoveAll extends Game implements Listener
             }
         }
     }
-
 
     public void updateBlock(Block block) {
         if (block.getId() != 159) return;

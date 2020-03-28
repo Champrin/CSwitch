@@ -23,6 +23,7 @@ public class Jigsaw extends Game implements Listener {
     public Jigsaw(Room plugin) {
         this.plugin = plugin;
         this.game_type = plugin.game_type;
+        this.area = (int) this.plugin.data.get("area");
     }
 
     public void shuffleLayout() {
@@ -133,6 +134,7 @@ public class Jigsaw extends Game implements Listener {
 
     @EventHandler
     public void onTouch(PlayerInteractEvent event) {
+        if (this.plugin.finish) return;
         if (this.game_type.equals("Jigsaw")) {
             if (this.plugin.game != 1) return;
             Player player = event.getPlayer();

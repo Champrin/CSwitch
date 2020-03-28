@@ -18,7 +18,6 @@ public class HanoiTower extends Game {
 
     }
 
-    @Override
     public void updateBlock(Block block) {
 
     }

@@ -18,6 +18,7 @@ public class OneToOne extends Game implements Listener {
 
     @EventHandler
     public void onTouch(PlayerInteractEvent event) {
+        if (this.plugin.finish) return;
         if (this.game_type.equals("OneToOne")) {
             if (this.plugin.game != 1) return;
             Player player = event.getPlayer();

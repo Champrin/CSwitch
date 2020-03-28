@@ -19,6 +19,7 @@ public class LightsOut extends Game  implements Listener {
 
     @EventHandler
     public void onTouch(PlayerInteractEvent event) {
+        if (this.plugin.finish) return;
         if (this.game_type.equals("LightsOut")) {
             if (this.plugin.game != 1) return;
             Block block = event.getBlock();
@@ -30,7 +31,8 @@ public class LightsOut extends Game  implements Listener {
             if (this.plugin.isInGame(player)) {
                 if (this.plugin.isInArena(pos)) {
                     event.setCancelled(true);
-                    this.updateBlock(block);
+                    updateBlock(block);
+                    checkFinish();
                 }
             }
         }
@@ -142,7 +144,6 @@ public class LightsOut extends Game  implements Listener {
                 }
             }
         }
-        this.checkFinish();
     }
 
     public void checkFinish() {

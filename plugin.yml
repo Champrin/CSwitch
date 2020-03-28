@@ -1,6 +1,6 @@
 name: CSwitch
 main: xyz.caibin.cswitch.CSwitch
-version: "1.0.0"
+version: "2.7.0"
 api: ["1.0.8"]
 
 author: CaiBin,Spiderman

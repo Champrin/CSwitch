@@ -2,32 +2,48 @@ package xyz.caibin.cswitch;
 
 import cn.nukkit.Player;
 import cn.nukkit.block.Block;
+import cn.nukkit.blockentity.BlockEntity;
+import cn.nukkit.blockentity.BlockEntitySign;
 import cn.nukkit.command.Command;
 import cn.nukkit.command.CommandSender;
+import cn.nukkit.entity.Entity;
 import cn.nukkit.event.EventHandler;
 import cn.nukkit.event.Listener;
 import cn.nukkit.event.block.BlockBreakEvent;
-import cn.nukkit.event.player.PlayerChatEvent;
-import cn.nukkit.event.player.PlayerInteractEvent;
-import cn.nukkit.event.player.PlayerJoinEvent;
-import cn.nukkit.event.player.PlayerTeleportEvent;
+import cn.nukkit.event.player.*;
 import cn.nukkit.form.window.FormWindowSimple;
 import cn.nukkit.level.Level;
-import cn.nukkit.level.particle.FloatingTextParticle;
+import cn.nukkit.level.format.generic.BaseFullChunk;
 import cn.nukkit.math.Vector3;
+import cn.nukkit.nbt.tag.CompoundTag;
 import cn.nukkit.plugin.PluginBase;
+import cn.nukkit.scheduler.Task;
 import cn.nukkit.utils.Config;
+import xyz.caibin.cswitch.untils.MetricsLite;
+import xyz.caibin.cswitch.untils.TextEntity;
 
 import java.io.File;
 import java.util.*;
 
 
 public class CSwitch extends PluginBase implements Listener {
-/*
-//TODO
-// 1.HanoiTower 汉诺塔游戏
-// 2.MemoryMaster 记忆大师
-*/
+    /*
+    //TODO
+    // 1.HanoiTower 汉诺塔游戏
+    // 2.MemoryMaster 记忆大师
+    /*
+* 【记忆翻牌】
+一次翻两张牌，两张若是一样则被翻过来，尽量把全部牌都翻过来
+* 2048
+
+
+* 【颜色记忆】
+按照四种颜色闪光的顺序重复点击一遍，尽量做到无错误
+
+【色彩连线】--》宾果消消乐 OnOneLine
+和焊接电路板相似，放置色块把两个相同颜色的色块连接起来
+色块连线不能有交叉
+* */
     public Config config;
     public final String PLUGIN_NAME = "CSwitch";
     public final String PLUGIN_No = "8";
@@ -52,22 +68,28 @@ public class CSwitch extends PluginBase implements Listener {
         Game.put(4, "RemoveAll");//方块消消乐
         Game.put(5, "BlockPlay_4");//15字游戏
         Game.put(6, "BlockPlay_3");//8字游戏
+        Game.put(7, "CrazyClick");//疯狂点击
+        Game.put(8, "AvoidWhiteBlock");//别踩白块
+        Game.put(9, "Sudoku");//数独
+        //Game.put(10, "BeFaster");//快速反应
         instance = this;
     }
 
     @Override
     public void onEnable() {
         long start = new Date().getTime();
-        this.getServer().getPluginManager().registerEvents(this, this);
         this.getLogger().info(PREFIX + "  §d加载中。。。§e|作者：Champrin");
         this.getLogger().info(PREFIX + "  §e ==> Champrin的第§c" + PLUGIN_No + "§e款插件/小游戏 " + GAME_NAME + "！");
-
+        this.getServer().getPluginManager().registerEvents(this, this);
+        Entity.registerEntity("TextEntity", TextEntity.class);
         this.LoadConfig();
         this.LoadRoomConfig();
+        new MetricsLite(this, 6865);
 
         this.getLogger().info(PREFIX + "  §d已加载完毕。。。");
         this.getLogger().info(PREFIX + "  §e加载耗时" + (new Date().getTime() - start) + "毫秒");
     }
+
     @Override
     public void onDisable() {
         //给每个房间结算结果
@@ -152,84 +174,16 @@ public class CSwitch extends PluginBase implements Listener {
         return rooms.getOrDefault(room_name, null);
     }
 
-    public LinkedHashMap<String, LinkedHashMap<FloatingTextParticle, Level>> Ft = new LinkedHashMap<>();
-
-    public void setFloatingText(String room_name) {
-        LinkedHashMap<String, Object> m = rooms_message.get(room_name);
-        Level level = this.getServer().getLevelByName((String) m.get("room_world"));
-        String[] p1 = ((String) m.get("button_pos")).split("\\+");
-        String[] p2 = ((String) m.get("pos2")).split("\\+");
-        String direction = (String) m.get("direction");
-        FloatingTextParticle P1 = null, P2 = null;
-        switch (direction) {
-            case "x+": {
-                int z = Integer.parseInt(p1[2]);
-                P1 = new FloatingTextParticle(new Vector3(Integer.parseInt(p1[0]) + 0.5, Integer.parseInt(p1[1]) + 1.5, z + 0.5),
-                        getFtTitle((String) m.get("game_type")), "§d§l点击下方按钮加入游戏！");
-                P2 = new FloatingTextParticle(new Vector3(Integer.parseInt(p2[0]) + 2.5, Integer.parseInt(p2[1]) + 1.5, z + 0.5),
-                        getFtTitle((String) m.get("game_type")) + "§7§r---§c§l游戏玩法", getGameRule((String) m.get("game_type")));
-                break;
-            }
-            case "x-": {
-                int z = Integer.parseInt(p1[2]);
-                P1 = new FloatingTextParticle(new Vector3(Integer.parseInt(p1[0]) + 0.5, Integer.parseInt(p1[1]) + 1.5, z + 0.5),
-                        getFtTitle((String) m.get("game_type")), "§d§l点击下方按钮加入游戏！");
-                P2 = new FloatingTextParticle(new Vector3(Integer.parseInt(p2[0]) - 2.5, Integer.parseInt(p2[1]) + 1.5, z + 0.5),
-                        getFtTitle((String) m.get("game_type")) + "§7§r---§c§l游戏玩法", getGameRule((String) m.get("game_type")));
-                break;
-            }
-            case "z+": {
-                int x = Integer.parseInt(p1[0]);
-                P1 = new FloatingTextParticle(new Vector3(x + 0.5, Integer.parseInt(p1[1]) + 1.5, Integer.parseInt(p1[2]) + 0.5),
-                        getFtTitle((String) m.get("game_type")), "§d§l点击下方按钮加入游戏！");
-                P2 = new FloatingTextParticle(new Vector3(x + 0.5, Integer.parseInt(p2[1]) + 1.5, Integer.parseInt(p2[2]) + 2.5),
-                        getFtTitle((String) m.get("game_type")) + "§7§r---§c§l游戏玩法", getGameRule((String) m.get("game_type")));
-                break;
-            }
-            case "z-": {
-                int x = Integer.parseInt(p1[0]);
-                P1 = new FloatingTextParticle(new Vector3(x + 0.5, Integer.parseInt(p1[1]) + 1.5, Integer.parseInt(p1[2]) + 0.5),
-                        getFtTitle((String) m.get("game_type")), "§d§l点击下方按钮加入游戏！");
-                P2 = new FloatingTextParticle(new Vector3(x + 0.5, Integer.parseInt(p2[1]) + 1.5, Integer.parseInt(p2[2]) - 2.5),
-                        getFtTitle((String) m.get("game_type")) + "§7§r---§c§l游戏玩法", getGameRule((String) m.get("game_type")));
-                break;
-            }
-        }
-        LinkedHashMap<FloatingTextParticle, Level> t = new LinkedHashMap<>();
-        t.put(P1, level);
-        t.put(P2, level);
-        Ft.put(room_name, t);
-    }
 
     public void DelFloatingText(String room_name) {
-        LinkedHashMap<FloatingTextParticle, Level> FT = Ft.get(room_name);
-        for (Map.Entry<FloatingTextParticle, Level> map : FT.entrySet()) {
-            map.getKey().setInvisible(true);
+        for (BlockEntitySign map : FT.get(room_name)) {
+            map.level.setBlock(map, Block.get(0, 0));
         }
-        Ft.remove(room_name);
+        FT.remove(room_name);
     }
 
     public String getFtTitle(String game_type) {
-        String gt = "";
-        switch (game_type) {
-            case "LightsOut":
-                gt = "关灯";
-                break;
-            case "OneToOne":
-                gt = "一一对应";
-                break;
-            case "Jigsaw":
-                gt = "拼图";
-                break;
-            case "RemoveAll":
-                gt = "方块消消乐";
-                break;
-            case "BlockPlay_4":
-            case "BlockPlay_3":
-                gt = "方块华容道";
-                break;
-        }
-        return "§f" + game_type + "§7>>§6§l" + gt + "";
+        return "§f" + game_type + "§7>>§6§l" + getChineseName(game_type) + "";
     }
 
     public String getGameRule(String game_type) {
@@ -257,6 +211,24 @@ public class CSwitch extends PluginBase implements Listener {
                         "      §f当这个方块周围连着同样的\n" +
                         "      §f方块时,会被一起消除";
                 break;
+            case "CrazyClick":
+                gt = gt + "§b玩法: §f测试手的手速！\n" +
+                        "      §f游戏开始后，尽你的可能快速点击游戏区\n" +
+                        "      §f域内的\"钻石块\"\n";
+                break;
+            case "Sudoku":
+                gt = "§a胜利条件: §f各种颜色的羊毛在每一行、每一列和每一宫中都只出现一次\n";
+                gt = gt + "§b玩法: §f给出一定的已知羊毛颜色和解题条件\n" +
+                        "      §f利用逻辑和推理,在其他的空格上填入羊毛\n" +
+                        "      §f点击方块可以删除答案\n";
+                break;
+            case "AvoidWhiteBlock":
+                gt = "§a胜利条件: §f将所有黑块“踩齐”\n";
+                gt = gt + "§b玩法: §f踩黑块,不能踩白块\n";
+                break;
+            case "BeFaster":
+                gt = "§b玩法: §f在一定的时间内，尽可能的快速点击带颜色的方块\n";
+                break;
             case "BlockPlay_4":
             case "BlockPlay_3":
                 gt = "§a胜利条件: §f将方块的顺序移为跟模板一样的顺序\n";
@@ -269,37 +241,46 @@ public class CSwitch extends PluginBase implements Listener {
 
     public void SetRoomTip(String type, CommandSender sender) {
         sender.sendMessage(">>>  边框自行设置且不能使用羊毛 §a一些需要模板的游戏,请自行建造！");
-        sender.sendMessage(">>  §l§c!!!设置要求：§r请使用竖立平面且最左上角必须设为点1，最右下角必须设为点2");
         switch (type) {
             case "LightsOut":
+            case "AvoidWhiteBlock":
+            case "BeFaster":
+                sender.sendMessage(">>  §l§c!!!设置要求：§r请使用竖立平面且最左上角必须设为点1，最右下角必须设为点2");
                 sender.sendMessage(">>  请破坏方块设置点1，然后破坏一个§a大于3x3大小§r的竖直平面的方块设置点2");
                 break;
             case "OneToOne":
-                sender.sendMessage(">>  请破坏方块设置点1，然后破坏一个§a大于6x6§r大小的竖直平面的方块来设置点2");
+                sender.sendMessage(">>  §l§c!!!设置要求：§r请使用竖立平面且最左上角必须设为点1，最右下角必须设为点2");
+                sender.sendMessage(">>  请破坏方块设置点1，然后破坏一个§a大于3x3§r大小的竖直平面的方块来设置点2");
                 break;
             case "Jigsaw":
+                sender.sendMessage(">>  §l§c!!!设置要求：§r请使用竖立平面且最左上角必须设为点1，最右下角必须设为点2");
                 sender.sendMessage(">>  请破坏方块设置点1，然后破坏一个§a3x3§r大小的竖直平面的方块设置点2");
                 break;
             case "RemoveAll":
+                sender.sendMessage(">>  §l§c!!!设置要求：§r请使用竖立平面且最左上角必须设为点1，最右下角必须设为点2");
                 sender.sendMessage(">>  请破坏方块设置点1，然后破坏一个§a大于6x6§r大小的竖直平面的方块设置点2");
                 break;
             case "BlockPlay_4":
+                sender.sendMessage(">>  §l§c!!!设置要求：§r请使用竖立平面且最左上角必须设为点1，最右下角必须设为点2");
                 sender.sendMessage(">>  请破坏方块设置点1，然后破坏一个§a4x4大小§r的竖直平面的方块设置点2");
                 break;
-            case "BlockPlay_3":
-                sender.sendMessage(">>  请破坏方块设置点1，然后破坏一个§a3x3大小§r的竖直平面的方块设置点2");
+            case "CrazyClick":
+                sender.sendMessage(">>  请破坏一个方块设置游戏区域");
+                break;
+            case "Sudoku":
+                sender.sendMessage(">>  请破坏一个方块,并保证该方块的左右6个单位的方块都无其他方块");
+                sender.sendMessage(">>  边框自动生成");
                 break;
         }
         sender.sendMessage(">>  §l§c如不按照要求来设置游戏区域范围，程序运行错误导致服务器崩溃造成的后果自负");
     }
 
-
     @EventHandler
     public void onBlockBreak(BlockBreakEvent event) {
         Player p = event.getPlayer();
+        Block b = event.getBlock();
         if (setters.containsKey(p.getName())) {
             event.setCancelled(true);
-            Block b = event.getBlock();
 
             String room_name = setters.get(p.getName()).get("room_name");
             Config room = this.getRoomData(room_name);
@@ -310,75 +291,166 @@ public class CSwitch extends PluginBase implements Listener {
             String xyz = x + "+" + y + "+" + z;
 
             int step = Integer.parseInt(setters.get(p.getName()).get("step"));
-
-            switch (step) {
-                case 1:
-                    setters.get(p.getName()).put("pos1", xyz);
-                    room.set("pos1", xyz);
-                    room.save();
-                    p.sendMessage(">>  请设置点2");
-                    setters.get(p.getName()).put("step", String.valueOf(step + 1));
-                    break;
-                case 2:
-                    room.set("pos2", xyz);
-                    p.sendMessage(">>  请设置加入游戏按钮");
-
-                    String[] pos1 = setters.get(p.getName()).get("pos1").split("\\+");
-                    String[] pos2 = xyz.split("\\+");
-
-                    String d = null;
-                    int length = 0;
-
-                    if (pos1[2].equals(pos2[2]) && Integer.parseInt(pos1[0]) < Integer.parseInt(pos2[0]))//从pos1开始运作
-                    {
-                        d = "x+";
-                        length = Math.abs(Math.max(Integer.parseInt(pos1[0]), Integer.parseInt(pos2[0])) - Math.min(Integer.parseInt(pos1[0]), Integer.parseInt(pos2[0]))) + 1;
-                    } else if (pos1[2].equals(pos2[2]) && Integer.parseInt(pos1[0]) > Integer.parseInt(pos2[0])) {
-                        d = "x-";
-                        length = Math.abs(Math.max(Integer.parseInt(pos1[0]), Integer.parseInt(pos2[0])) - Math.min(Integer.parseInt(pos1[0]), Integer.parseInt(pos2[0]))) + 1;
-                    } else if (pos1[0].equals(pos2[0]) && Integer.parseInt(pos1[2]) < Integer.parseInt(pos2[2])) {
-                        d = "z+";
-                        length = Math.abs(Math.max(Integer.parseInt(pos1[2]), Integer.parseInt(pos2[2])) - Math.min(Integer.parseInt(pos1[2]), Integer.parseInt(pos2[2]))) + 1;
-                    } else if (pos1[0].equals(pos2[0]) && Integer.parseInt(pos1[2]) > Integer.parseInt(pos2[2])) {
-                        d = "z-";
-                        length = Math.abs(Math.max(Integer.parseInt(pos1[2]), Integer.parseInt(pos2[2])) - Math.min(Integer.parseInt(pos1[2]), Integer.parseInt(pos2[2]))) + 1;
-                    }
-                    int width = Math.abs(Math.min(Integer.parseInt(pos1[1]), Integer.parseInt(pos2[1])) - Math.max(Integer.parseInt(pos1[1]), Integer.parseInt(pos2[1]))) + 1;
-                    int area = length * width;
-                    room.set("direction", d);
-                    room.set("area", area);//面积
-                    room.set("length", length);
-                    room.set("width", width);
-                    room.save();
-                    setters.get(p.getName()).put("step", String.valueOf(step + 1));
-                    break;
-                case 3:
-                    if (b.getId() == 143) {
-                        room.set("button_pos", xyz);
-                        room.set("state", "true");
-                        room.set("room_world", b.level.getName());
-                        room.save();
-                        rooms_message.put(room_name, (LinkedHashMap<String, Object>) room.getAll());
-                        setRoomData(room_name);
-                        rooms.get(room_name).setGameArena();
-                        setters.remove(p.getName());
-                        loadFloatingText(p, Ft.get(room_name));
-                        p.sendMessage(">>  房间设置已完成");
-                    } else {
-                        setters.get(p.getName()).put("step", "3");
-                        p.sendMessage(">>  请破坏木质按钮");
+            switch (setters.get(p.getName()).get("gameName")) {
+                case "CrazyClick":
+                    switch (step) {
+                        case 1:
+                            room.set("pos1", xyz);
+                            room.set("pos2", xyz);
+                            room.set("direction", "x+");
+                            room.set("area", 1);//面积
+                            room.save();
+                            p.sendMessage(">>  请设置加入游戏按钮");
+                            setters.get(p.getName()).put("step", String.valueOf(step + 1));
+                            break;
+                        case 2:
+                            if (b.getId() == 143) {
+                                room.set("button_pos", xyz);
+                                room.set("state", "true");
+                                room.set("room_world", b.level.getName());
+                                room.save();
+                                rooms_message.put(room_name, (LinkedHashMap<String, Object>) room.getAll());
+                                setRoomData(room_name);
+                                rooms.get(room_name).setGameArena();
+                                setters.remove(p.getName());
+                                p.sendMessage(">>  房间设置已完成");
+                            } else {
+                                setters.get(p.getName()).put("step", "2");
+                                p.sendMessage(">>  请破坏木质按钮");
+                            }
+                            break;
                     }
                     break;
+                case "Sudoku":
+                    switch (step) {
+                        case 1:
+                            setters.get(p.getName()).put("pos1", xyz);
+                            p.sendMessage(">>  请在刚刚破坏的方块的旁边,再破坏一个方块,用于判断位置,保证两个方块在一条直线");
+                            setters.get(p.getName()).put("step", String.valueOf(step + 1));
+                            break;
+                        case 2:
+                            p.sendMessage(">>  请设置加入游戏按钮");
+
+                            String[] pos1 = setters.get(p.getName()).get("pos1").split("\\+");
+                            String[] pos2 = xyz.split("\\+");
+
+                            String d = "";
+                            if (pos1[2].equals(pos2[2]) && Integer.parseInt(pos1[0]) < Integer.parseInt(pos2[0]))//从pos1开始运作
+                            {
+                                d = "x+";
+                                room.set("pos1", (Integer.parseInt(pos1[0]) - 6) + "+" + (Integer.parseInt(pos1[1]) + 12) + "+" + Integer.parseInt(pos1[2]));
+                                room.set("pos2", (Integer.parseInt(pos1[0]) + 6) + "+" + (Integer.parseInt(pos1[1])) + "+" + Integer.parseInt(pos1[2]));
+                            } else if (pos1[2].equals(pos2[2]) && Integer.parseInt(pos1[0]) > Integer.parseInt(pos2[0])) {
+                                d = "x-";
+                                room.set("pos1", (Integer.parseInt(pos1[0]) + 6) + "+" + (Integer.parseInt(pos1[1]) + 12) + "+" + Integer.parseInt(pos1[2]));
+                                room.set("pos2", (Integer.parseInt(pos1[0]) - 6) + "+" + (Integer.parseInt(pos1[1])) + "+" + Integer.parseInt(pos1[2]));
+                            } else if (pos1[0].equals(pos2[0]) && Integer.parseInt(pos1[2]) < Integer.parseInt(pos2[2])) {
+                                d = "z+";
+                                room.set("pos1", Integer.parseInt(pos1[0]) + "+" + (Integer.parseInt(pos1[1]) + 12) + "+" + (Integer.parseInt(pos1[2]) + 6));
+                                room.set("pos2", Integer.parseInt(pos1[0]) + "+" + (Integer.parseInt(pos1[1])) + "+" + (Integer.parseInt(pos1[2]) - 6));
+                            } else if (pos1[0].equals(pos2[0]) && Integer.parseInt(pos1[2]) > Integer.parseInt(pos2[2])) {
+                                d = "z-";
+                                room.set("pos1", Integer.parseInt(pos1[0]) + "+" + (Integer.parseInt(pos1[1]) + 12) + "+" + (Integer.parseInt(pos1[2]) - 6));
+                                room.set("pos2", Integer.parseInt(pos1[0]) + "+" + (Integer.parseInt(pos1[1])) + "+" + (Integer.parseInt(pos1[2]) + 6));
+                            }
+                            room.set("direction", d);
+                            room.set("area", 0);//面积
+                            room.save();
+                            setters.get(p.getName()).put("step", String.valueOf(step + 1));
+                            break;
+                        case 3:
+                            if (b.getId() == 143) {
+                                room.set("button_pos", xyz);
+                                room.set("state", "true");
+                                room.set("room_world", b.level.getName());
+                                room.save();
+                                rooms_message.put(room_name, (LinkedHashMap<String, Object>) room.getAll());
+                                setRoomData(room_name);
+                                rooms.get(room_name).setGameArena();
+                                setters.remove(p.getName());
+                                p.sendMessage(">>  房间设置已完成");
+                            } else {
+                                setters.get(p.getName()).put("step", "2");
+                                p.sendMessage(">>  请破坏木质按钮");
+                            }
+                            break;
+                    }
+                    break;
+                default:
+                    switch (step) {
+                        case 1:
+                            setters.get(p.getName()).put("pos1", xyz);
+                            room.set("pos1", xyz);
+                            room.save();
+                            p.sendMessage(">>  请设置点2");
+                            setters.get(p.getName()).put("step", String.valueOf(step + 1));
+                            break;
+                        case 2:
+                            room.set("pos2", xyz);
+                            p.sendMessage(">>  请设置加入游戏按钮");
+
+                            String[] pos1 = setters.get(p.getName()).get("pos1").split("\\+");
+                            String[] pos2 = xyz.split("\\+");
+
+                            String d = null;
+                            int length = 0;
+
+                            if (pos1[2].equals(pos2[2]) && Integer.parseInt(pos1[0]) < Integer.parseInt(pos2[0]))//从pos1开始运作
+                            {
+                                d = "x+";
+                                length = Math.abs(Math.max(Integer.parseInt(pos1[0]), Integer.parseInt(pos2[0])) - Math.min(Integer.parseInt(pos1[0]), Integer.parseInt(pos2[0]))) + 1;
+                            } else if (pos1[2].equals(pos2[2]) && Integer.parseInt(pos1[0]) > Integer.parseInt(pos2[0])) {
+                                d = "x-";
+                                length = Math.abs(Math.max(Integer.parseInt(pos1[0]), Integer.parseInt(pos2[0])) - Math.min(Integer.parseInt(pos1[0]), Integer.parseInt(pos2[0]))) + 1;
+                            } else if (pos1[0].equals(pos2[0]) && Integer.parseInt(pos1[2]) < Integer.parseInt(pos2[2])) {
+                                d = "z+";
+                                length = Math.abs(Math.max(Integer.parseInt(pos1[2]), Integer.parseInt(pos2[2])) - Math.min(Integer.parseInt(pos1[2]), Integer.parseInt(pos2[2]))) + 1;
+                            } else if (pos1[0].equals(pos2[0]) && Integer.parseInt(pos1[2]) > Integer.parseInt(pos2[2])) {
+                                d = "z-";
+                                length = Math.abs(Math.max(Integer.parseInt(pos1[2]), Integer.parseInt(pos2[2])) - Math.min(Integer.parseInt(pos1[2]), Integer.parseInt(pos2[2]))) + 1;
+                            }
+                            int width = Math.abs(Math.min(Integer.parseInt(pos1[1]), Integer.parseInt(pos2[1])) - Math.max(Integer.parseInt(pos1[1]), Integer.parseInt(pos2[1]))) + 1;
+                            int area = length * width;
+                            room.set("direction", d);
+                            room.set("area", area);//面积
+                            room.set("length", length);
+                            room.set("width", width);
+                            room.save();
+                            setters.get(p.getName()).put("step", String.valueOf(step + 1));
+                            break;
+                        case 3:
+                            if (b.getId() == 143) {
+                                room.set("button_pos", xyz);
+                                room.set("state", "true");
+                                room.set("room_world", b.level.getName());
+                                room.save();
+                                rooms_message.put(room_name, (LinkedHashMap<String, Object>) room.getAll());
+                                setRoomData(room_name);
+                                rooms.get(room_name).setGameArena();
+                                setters.remove(p.getName());
+                                p.sendMessage(">>  房间设置已完成");
+                            } else {
+                                setters.get(p.getName()).put("step", "3");
+                                p.sendMessage(">>  请破坏木质按钮");
+                            }
+                            break;
+                    }
+                    break;
+            }
+        } else if (b.getId() == Block.SIGN_POST || b.getId() == Block.WALL_SIGN) {
+            BlockEntity tile = event.getBlock().level.getBlockEntity(b);
+            if (tile instanceof BlockEntitySign) {
+                String text = ((BlockEntitySign) tile).getText()[2];
+                if (text.equals("§a点击加入游戏") || text.equals("§a点击查看游戏介绍")) {
+                    event.setCancelled(true);
+                }
             }
         }
     }
 
-
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        Player p = event.getPlayer();
-        setters.remove(p.getName());
-        loadAllFloatingText(p);
+        setters.remove(event.getPlayer().getName());
     }
 
     @EventHandler
@@ -396,40 +468,30 @@ public class CSwitch extends PluginBase implements Listener {
     public void onTouch(PlayerInteractEvent event) {
         Player player = event.getPlayer();
         Block b = event.getBlock();
-        if (b.getId() == 143) {
-            int x = (int) Math.round(Math.floor(b.x));
-            int y = (int) Math.round(Math.floor(b.y));
-            int z = (int) Math.round(Math.floor(b.z));
-            String xyz = x + "+" + y + "+" + z;
-            for (Map.Entry<String, LinkedHashMap<String, Object>> map : this.rooms_message.entrySet()) {
-                if (xyz.equals(map.getValue().get("button_pos"))) {
-                    if (this.getRoom(map.getKey()) != null) {
-                        this.getRoom(map.getKey()).joinToRoom(player);
+        if (b.getId() == Block.SIGN_POST || b.getId() == Block.WALL_SIGN) {
+            BlockEntity tile = event.getBlock().level.getBlockEntity(b);
+            if (tile instanceof BlockEntitySign) {
+                if (((BlockEntitySign) tile).getText()[2].equals("§a点击加入游戏")) {
+                    int x = (int) Math.round(Math.floor(b.x));
+                    int y = (int) Math.round(Math.floor(b.y));
+                    int z = (int) Math.round(Math.floor(b.z));
+                    String xyz = x + "+" + y + "+" + z;
+                    for (Map.Entry<String, LinkedHashMap<String, Object>> map : this.rooms_message.entrySet()) {
+                        if (xyz.equals(map.getValue().get("button_pos"))) {
+                            if (this.getRoom(map.getKey()) != null) {
+                                this.getRoom(map.getKey()).joinToRoom(player);
+                            }
+                            break;
+                        }
                     }
-                    break;
+                } else if (((BlockEntitySign) tile).getText()[2].equals("§a点击查看游戏介绍")) {
+                    String game_type = ((BlockEntitySign) tile).getText()[1];
+                    String text = getFtTitle(game_type) + "§7§r---§c§l游戏玩法" + "\n" + getGameRule(game_type);
+                    FormWindowSimple window = new FormWindowSimple(game_type + "§6游戏介绍", text);
+                    player.showFormWindow(window);
                 }
             }
-
         }
-    }
-
-    public void loadAllFloatingText(Player player) {
-        for (Map.Entry<String, LinkedHashMap<FloatingTextParticle, Level>> map : Ft.entrySet()) {
-            LinkedHashMap<FloatingTextParticle, Level> ft = map.getValue();
-            loadFloatingText(player, ft);
-        }
-    }
-
-    public void loadFloatingText(Player player, LinkedHashMap<FloatingTextParticle, Level> ft) {
-        for (Map.Entry<FloatingTextParticle, Level> FtMap : ft.entrySet()) {
-            FtMap.getValue().addParticle(FtMap.getKey(), player);
-        }
-
-    }
-
-    @EventHandler
-    public void onTp(PlayerTeleportEvent event) {
-        loadAllFloatingText(event.getPlayer());
     }
 
     public void Op_HelpMessage(CommandSender sender) {
@@ -437,8 +499,21 @@ public class CSwitch extends PluginBase implements Listener {
         sender.sendMessage(">  /cs add [房间名] [游戏序号]------ §d创建新房间");
         sender.sendMessage(">  /cs set [房间名] ------ §d设置房间");
         sender.sendMessage(">  /cs del [房间名] ------ §d删除房间");
-        sender.sendMessage(">  游戏类型： 1:关灯,2:一一对应,3:拼图,4:方块消消乐\n          5:方块华容道4*4,6:方块华容道3*3");
+        sender.sendMessage(">  游戏类型:\n" + getGameFile());
         sender.sendMessage(">  [游戏序号]为 游戏类型前的数字,请正确填写");
+    }
+
+    public String getGameFile() {
+        String gameFile = "    ";
+        int a = 0;
+        for (Map.Entry<Integer, String> map : Game.entrySet()) {
+            gameFile = gameFile + map.getKey() + ":" + getChineseName(map.getValue()) + ",";
+            a = a + 1;
+            if (a % 4 == 0) {
+                gameFile = gameFile + "\n" + "    ";
+            }
+        }
+        return gameFile;
     }
 
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
@@ -465,12 +540,13 @@ public class CSwitch extends PluginBase implements Listener {
                                 }
                             }
                             LinkedHashMap<String, String> list = new LinkedHashMap<>();
+                            list.put("gameName", (String) rooms_message.get(args[1]).get("game_type"));
                             list.put("room_name", args[1]);
                             list.put("step", String.valueOf(1));
                             setters.put(sender.getName(), list);
                             sender.sendMessage(">  房间" + args[1] + "正在设置");
                             this.SetRoomTip((String) rooms_message.get(args[1]).get("game_type"), sender);
-                            if (rooms_message.get(args[1]).get("button_pos") != null) {
+                            if (FT.containsKey(args[1])) {
                                 DelFloatingText(args[1]);
                             }
                         } else {
@@ -495,6 +571,18 @@ public class CSwitch extends PluginBase implements Listener {
                         a.set("state", "false");
                         a.set("room_world", " ");
                         a.set("start_time", "5");
+
+                        switch (Game.get(Integer.parseInt(args[2]))) {
+                            case "AvoidWhiteBlock":
+                                a.set("times", 15);
+                                break;
+                            case "CrazyClick":
+                                a.set("game_time", 20);
+                                break;
+                            case "BeFaster":
+                                a.set("game_time", 50);
+                                break;
+                        }
                         a.save();
                         rooms_message.put(args[1], (LinkedHashMap<String, Object>) a.getAll());
                         sender.sendMessage(">  房间" + args[1] + "成功创建");
@@ -510,10 +598,14 @@ public class CSwitch extends PluginBase implements Listener {
                         }
                         boolean file = new File(this.getDataFolder() + "/Room/" + args[1] + ".yml").delete();
                         if (file) {
+                            if (FT.containsKey(args[1])) {
+                                DelFloatingText(args[1]);
+                            }
                             if (rooms.containsKey(args[1])) {
                                 rooms.get(args[1]).stopGame();
                                 rooms.remove(args[1]);
                             }
+                            this.setters.remove(sender.getName());
                             rooms_message.remove(args[1]);
                             sender.sendMessage(">  房间" + args[1] + "已成功删除");
                         } else {
@@ -538,11 +630,12 @@ public class CSwitch extends PluginBase implements Listener {
     }
 
     public String getRank() {
-        StringBuilder rank= new StringBuilder("注:记录的时间单位都为秒\n   记录显示为000-player是暂无记录 \n");;
+        StringBuilder rank = new StringBuilder("注:记录的时间单位都为秒\n   记录显示为000-player是暂无记录 \n");
+        ;
         Map<String, Object> c = config.getAll();
-        for (String m : c.keySet())
-        {
+        for (String m : c.keySet()) {
             String gameName = m;
+            System.out.println(gameName);
             ArrayList<String> a = new ArrayList<>((Collection<? extends String>) config.get(gameName));
             gameName = getChineseName(gameName);
             for (int i = 0; i < 3; i++) {
@@ -564,15 +657,26 @@ public class CSwitch extends PluginBase implements Listener {
             case "RemoveAll":
                 return "方块消消乐";
             case "BlockPlay_4":
-                return "方块华容道4*4";
+                return "4X4方块华容道";
             case "BlockPlay_3":
-                return "方块华容道3*3";
+                return "3X3方块华容道";
+            case "CrazyClick":
+                return "疯狂点击";
+            case "Sudoku":
+                return "数独";
+            case "AvoidWhiteBlock":
+                return "别踩白块";
+            case "BeFaster":
+                return "快速反应";
             default:
                 return null;
         }
     }
 
     public void checkRank(String gameName, int spendTime, String gamer) {
+        System.out.println("--" + gameName);
+        System.out.println(spendTime);
+        System.out.println(gamer);
         ArrayList<String> a = new ArrayList<>((Collection<? extends String>) config.get(gameName));
         for (int i = 0; i < 3; i++) {
             String[] in = a.get(i).split("-");
@@ -581,8 +685,54 @@ public class CSwitch extends PluginBase implements Listener {
                 break;
             }
         }
-        config.set(gameName,a);
+        config.set(gameName, a);
         config.save();
+    }
+
+    public void setFloatingText(String room_name) {
+        LinkedHashMap<String, Object> m = rooms_message.get(room_name);
+        Level level = this.getServer().getLevelByName((String) m.get("room_world"));
+        String[] p1 = ((String) m.get("button_pos")).split("\\+");
+
+        double x1 = Integer.parseInt(p1[0]);
+        double y1 = Integer.parseInt(p1[1]);
+        double z1 = Integer.parseInt(p1[2]);
+
+        Block block;
+        BlockEntity tile;
+        BlockEntitySign sign, sign1;
+
+        block = level.getBlock(new Vector3(x1, y1, z1));
+        tile = level.getBlockEntity(block);
+        if (tile instanceof BlockEntitySign) {
+            sign = (BlockEntitySign) tile;
+        } else {
+            sign = new BlockEntitySign(block.getLevel().getChunk(block.getFloorX() >> 4, block.getFloorZ() >> 4), BlockEntity.getDefaultCompound(block, BlockEntity.SIGN));
+        }
+        sign.setText(PREFIX, (String) m.get("game_type"), "§a点击加入游戏");
+
+        block = level.getBlock(new Vector3(x1, y1 + 1, z1));
+        tile = level.getBlockEntity(block);
+        if (tile instanceof BlockEntitySign) {
+            sign1 = (BlockEntitySign) tile;
+        } else {
+            sign1 = new BlockEntitySign(block.getLevel().getChunk(block.getFloorX() >> 4, block.getFloorZ() >> 4), BlockEntity.getDefaultCompound(block, BlockEntity.SIGN));
+        }
+        sign1.setText(PREFIX, (String) m.get("game_type"), "§a点击查看游戏介绍");
+
+        FT.put(room_name, new ArrayList<>(Arrays.asList(sign, sign1)));
+    }
+
+    public LinkedHashMap<String, ArrayList<BlockEntitySign>> FT = new LinkedHashMap<>();
+
+    public void changeSign(String roomName) {
+        BlockEntitySign sign = FT.get(roomName).get(1);
+        Room room = rooms.get(roomName);
+        if (room.game == 0) {
+            sign.setText(PREFIX, room.game_type, "§a点击加入游戏");
+        } else {
+            sign.setText(PREFIX, room.game_type, "§f" + room.gamePlayer.getName() + "§a正在游戏");
+        }
     }
 }
 

@@ -1,5 +1,6 @@
 package xyz.caibin.cswitch.Game;
 
+import cn.nukkit.Player;
 import cn.nukkit.block.Block;
 import cn.nukkit.event.Listener;
 import cn.nukkit.event.player.PlayerInteractEvent;
@@ -19,9 +20,10 @@ public abstract class Game implements Listener {
         mainPlugin.getServer().getPluginManager().registerEvents(this, mainPlugin);
     }
 
+
     public abstract void onTouch(PlayerInteractEvent event);
 
-    public void updateBlock(Block block){};
+    //public void updateBlock(Block block){}
 
     public abstract void checkFinish();
 }
