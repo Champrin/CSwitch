@@ -6,21 +6,16 @@ import cn.nukkit.blockentity.BlockEntity;
 import cn.nukkit.blockentity.BlockEntitySign;
 import cn.nukkit.command.Command;
 import cn.nukkit.command.CommandSender;
-import cn.nukkit.entity.Entity;
 import cn.nukkit.event.EventHandler;
 import cn.nukkit.event.Listener;
 import cn.nukkit.event.block.BlockBreakEvent;
 import cn.nukkit.event.player.*;
 import cn.nukkit.form.window.FormWindowSimple;
 import cn.nukkit.level.Level;
-import cn.nukkit.level.format.generic.BaseFullChunk;
 import cn.nukkit.math.Vector3;
-import cn.nukkit.nbt.tag.CompoundTag;
 import cn.nukkit.plugin.PluginBase;
-import cn.nukkit.scheduler.Task;
 import cn.nukkit.utils.Config;
 import xyz.caibin.cswitch.untils.MetricsLite;
-import xyz.caibin.cswitch.untils.TextEntity;
 
 import java.io.File;
 import java.util.*;
@@ -29,20 +24,15 @@ import java.util.*;
 public class CSwitch extends PluginBase implements Listener {
     /*
     //TODO
-    // 1.HanoiTower 汉诺塔游戏
+    // 1.C2048 汉诺塔游戏
     // 2.MemoryMaster 记忆大师
     /*
 * 【记忆翻牌】
 一次翻两张牌，两张若是一样则被翻过来，尽量把全部牌都翻过来
-* 2048
-
 
 * 【颜色记忆】
 按照四种颜色闪光的顺序重复点击一遍，尽量做到无错误
 
-【色彩连线】--》宾果消消乐 OnOneLine
-和焊接电路板相似，放置色块把两个相同颜色的色块连接起来
-色块连线不能有交叉
 * */
     public Config config;
     public final String PLUGIN_NAME = "CSwitch";
@@ -71,7 +61,10 @@ public class CSwitch extends PluginBase implements Listener {
         Game.put(7, "CrazyClick");//疯狂点击
         Game.put(8, "AvoidWhiteBlock");//别踩白块
         Game.put(9, "Sudoku");//数独
-        //Game.put(10, "BeFaster");//快速反应
+        Game.put(10, "BeFaster");//快速反应
+        Game.put(11, "HanoiTower");//汉诺塔游戏
+        //Game.put(12, "C2048");//2048
+        //Game.put(13, "OnOneLine");//宾果消消乐
         instance = this;
     }
 
@@ -81,7 +74,6 @@ public class CSwitch extends PluginBase implements Listener {
         this.getLogger().info(PREFIX + "  §d加载中。。。§e|作者：Champrin");
         this.getLogger().info(PREFIX + "  §e ==> Champrin的第§c" + PLUGIN_No + "§e款插件/小游戏 " + GAME_NAME + "！");
         this.getServer().getPluginManager().registerEvents(this, this);
-        Entity.registerEntity("TextEntity", TextEntity.class);
         this.LoadConfig();
         this.LoadRoomConfig();
         new MetricsLite(this, 6865);
@@ -107,7 +99,32 @@ public class CSwitch extends PluginBase implements Listener {
             this.saveResource("config.yml", false);
         }
         this.config = new Config(this.getDataFolder() + "/config.yml", Config.YAML);
-
+        if (config.get("BlockPlay_4") == null) {
+            config.set("BlockPlay_4", new ArrayList<>(Arrays.asList("000-player", "000-player", "000-player")));
+        }
+        if (config.get("BlockPlay_3") == null) {
+            config.set("BlockPlay_3", new ArrayList<>(Arrays.asList("000-player", "000-player", "000-player")));
+        }
+        if (config.get("CrazyClick") == null) {
+            config.set("CrazyClick", new ArrayList<>(Arrays.asList("000-player", "000-player", "000-player")));
+        }
+        if (config.get("Sudoku") == null) {
+            config.set("Sudoku", new ArrayList<>(Arrays.asList("000-player", "000-player", "000-player")));
+        }
+        if (config.get("AvoidWhiteBlock") == null) {
+            config.set("AvoidWhiteBlock", new ArrayList<>(Arrays.asList("000-player", "000-player", "000-player")));
+        }
+        if (config.get("BeFaster") == null) {
+            config.set("BeFaster", new ArrayList<>(Arrays.asList("000-player", "000-player", "000-player")));
+        }
+        if (config.get("HanoiTower") == null) {
+            config.set("HanoiTower", new ArrayList<>(Arrays.asList("000-player", "000-player", "000-player")));
+        }/*if (config.get("C2048") == null){
+            config.set("C2048",new ArrayList<>(Arrays.asList("000-player","000-player","000-player")));
+        }if (config.get("OnOneLine") == null){
+            config.set("OnOneLine",new ArrayList<>(Arrays.asList("000-player","000-player","000-player")));
+        }*/
+        config.save();
         File file = new File(this.getDataFolder() + "/Room/");
         if (!file.exists()) {
             if (!file.mkdirs()) {
@@ -211,6 +228,13 @@ public class CSwitch extends PluginBase implements Listener {
                         "      §f当这个方块周围连着同样的\n" +
                         "      §f方块时,会被一起消除";
                 break;
+            case "OnOneLine":
+                gt = "§a胜利条件: §f尽可能的消完方块\n";
+                gt = gt + "§b玩法: §f点击一个方块与另外一个方块交换\n" +
+                        "      §f当两个方块的连线有相同方块时，会消除所有同颜色的方块\n" +
+                        "§c注意: §a当你认为你已经不能再进行下一步时,请切换“门”物品以结束\n" +
+                        "      §a游戏！此游戏排行榜以分统计！";
+                break;
             case "CrazyClick":
                 gt = gt + "§b玩法: §f测试手的手速！\n" +
                         "      §f游戏开始后，尽你的可能快速点击游戏区\n" +
@@ -222,9 +246,20 @@ public class CSwitch extends PluginBase implements Listener {
                         "      §f利用逻辑和推理,在其他的空格上填入羊毛\n" +
                         "      §f点击方块可以删除答案\n";
                 break;
+            case "C2048":
+                gt = "§a胜利条件: §f最终拼出绿色羊毛方块！\n";
+                gt = gt + "§b玩法: §f用物品栏的物品，实现上下左右操作\n" +
+                        "      §f你需要控制所有方块向同一个方向运动，两个相同的方块撞在一起之后会生成\n" +
+                        "      §f下一级的方块，每次操作之后会随机生成一个初始方块\n";
+                break;
             case "AvoidWhiteBlock":
                 gt = "§a胜利条件: §f将所有黑块“踩齐”\n";
                 gt = gt + "§b玩法: §f踩黑块,不能踩白块\n";
+                break;
+            case "HanoiTower":
+                gt = "§a胜利条件: §f将左边第一列所有方块移动到右边第一列\n";
+                gt = gt + "§b玩法: §f每次只能移动一个盘子。\n" +
+                        "      §f以左边第一列为主要，下面的方块不能放在这个方块上面的方块的上面！\n";
                 break;
             case "BeFaster":
                 gt = "§b玩法: §f在一定的时间内，尽可能的快速点击带颜色的方块\n";
@@ -248,6 +283,11 @@ public class CSwitch extends PluginBase implements Listener {
                 sender.sendMessage(">>  §l§c!!!设置要求：§r请使用竖立平面且最左上角必须设为点1，最右下角必须设为点2");
                 sender.sendMessage(">>  请破坏方块设置点1，然后破坏一个§a大于3x3大小§r的竖直平面的方块设置点2");
                 break;
+            case "C2048":
+                sender.sendMessage(">>  §l§c!!!设置要求：§r请使用竖立平面且最左上角必须设为点1，最右下角必须设为点2");
+                sender.sendMessage(">>  请破坏方块设置点1，然后破坏一个§a大于4x4大小§r的竖直平面的方块设置点2");
+                sender.sendMessage("    §c建议设置4x4");
+                break;
             case "OneToOne":
                 sender.sendMessage(">>  §l§c!!!设置要求：§r请使用竖立平面且最左上角必须设为点1，最右下角必须设为点2");
                 sender.sendMessage(">>  请破坏方块设置点1，然后破坏一个§a大于3x3§r大小的竖直平面的方块来设置点2");
@@ -257,12 +297,17 @@ public class CSwitch extends PluginBase implements Listener {
                 sender.sendMessage(">>  请破坏方块设置点1，然后破坏一个§a3x3§r大小的竖直平面的方块设置点2");
                 break;
             case "RemoveAll":
+            case "OnOneLine":
                 sender.sendMessage(">>  §l§c!!!设置要求：§r请使用竖立平面且最左上角必须设为点1，最右下角必须设为点2");
                 sender.sendMessage(">>  请破坏方块设置点1，然后破坏一个§a大于6x6§r大小的竖直平面的方块设置点2");
                 break;
             case "BlockPlay_4":
                 sender.sendMessage(">>  §l§c!!!设置要求：§r请使用竖立平面且最左上角必须设为点1，最右下角必须设为点2");
                 sender.sendMessage(">>  请破坏方块设置点1，然后破坏一个§a4x4大小§r的竖直平面的方块设置点2");
+                break;
+            case "HanoiTower":
+                sender.sendMessage(">>  §l§c!!!设置要求：§r请使用竖立平面且最左上角必须设为点1，最右下角必须设为点2");
+                sender.sendMessage(">>  请破坏方块设置点1，然后破坏一个§a高为3 宽为5大小§r的竖直平面的方块设置点2");
                 break;
             case "CrazyClick":
                 sender.sendMessage(">>  请破坏一个方块设置游戏区域");
@@ -300,11 +345,22 @@ public class CSwitch extends PluginBase implements Listener {
                             room.set("direction", "x+");
                             room.set("area", 1);//面积
                             room.save();
-                            p.sendMessage(">>  请设置加入游戏按钮");
+                            p.sendMessage(">>  请设置游戏介绍木牌");
                             setters.get(p.getName()).put("step", String.valueOf(step + 1));
                             break;
                         case 2:
-                            if (b.getId() == 143) {
+                            if (b.getId() == Block.SIGN_POST || b.getId() == Block.WALL_SIGN) {
+                                room.set("rule_pos", xyz);
+                                room.save();
+                                p.sendMessage(">>  请设置加入游戏木牌");
+                                setters.get(p.getName()).put("step", String.valueOf(step + 1));
+                            } else {
+                                setters.get(p.getName()).put("step", "2");
+                                p.sendMessage(">>  请破坏木牌");
+                            }
+                            break;
+                        case 3:
+                            if (b.getId() == Block.SIGN_POST || b.getId() == Block.WALL_SIGN) {
                                 room.set("button_pos", xyz);
                                 room.set("state", "true");
                                 room.set("room_world", b.level.getName());
@@ -315,8 +371,8 @@ public class CSwitch extends PluginBase implements Listener {
                                 setters.remove(p.getName());
                                 p.sendMessage(">>  房间设置已完成");
                             } else {
-                                setters.get(p.getName()).put("step", "2");
-                                p.sendMessage(">>  请破坏木质按钮");
+                                setters.get(p.getName()).put("step", "3");
+                                p.sendMessage(">>  请破坏木牌");
                             }
                             break;
                     }
@@ -325,11 +381,11 @@ public class CSwitch extends PluginBase implements Listener {
                     switch (step) {
                         case 1:
                             setters.get(p.getName()).put("pos1", xyz);
-                            p.sendMessage(">>  请在刚刚破坏的方块的旁边,再破坏一个方块,用于判断位置,保证两个方块在一条直线");
+                            p.sendMessage(">>  请在刚刚破坏的方块的右边,再破坏一个方块,用于判断位置,保证两个方块在一条直线");
                             setters.get(p.getName()).put("step", String.valueOf(step + 1));
                             break;
                         case 2:
-                            p.sendMessage(">>  请设置加入游戏按钮");
+                            p.sendMessage(">>  请设置游戏介绍木牌");
 
                             String[] pos1 = setters.get(p.getName()).get("pos1").split("\\+");
                             String[] pos2 = xyz.split("\\+");
@@ -346,12 +402,12 @@ public class CSwitch extends PluginBase implements Listener {
                                 room.set("pos2", (Integer.parseInt(pos1[0]) - 6) + "+" + (Integer.parseInt(pos1[1])) + "+" + Integer.parseInt(pos1[2]));
                             } else if (pos1[0].equals(pos2[0]) && Integer.parseInt(pos1[2]) < Integer.parseInt(pos2[2])) {
                                 d = "z+";
-                                room.set("pos1", Integer.parseInt(pos1[0]) + "+" + (Integer.parseInt(pos1[1]) + 12) + "+" + (Integer.parseInt(pos1[2]) + 6));
-                                room.set("pos2", Integer.parseInt(pos1[0]) + "+" + (Integer.parseInt(pos1[1])) + "+" + (Integer.parseInt(pos1[2]) - 6));
-                            } else if (pos1[0].equals(pos2[0]) && Integer.parseInt(pos1[2]) > Integer.parseInt(pos2[2])) {
-                                d = "z-";
                                 room.set("pos1", Integer.parseInt(pos1[0]) + "+" + (Integer.parseInt(pos1[1]) + 12) + "+" + (Integer.parseInt(pos1[2]) - 6));
                                 room.set("pos2", Integer.parseInt(pos1[0]) + "+" + (Integer.parseInt(pos1[1])) + "+" + (Integer.parseInt(pos1[2]) + 6));
+                            } else if (pos1[0].equals(pos2[0]) && Integer.parseInt(pos1[2]) > Integer.parseInt(pos2[2])) {
+                                d = "z-";
+                                room.set("pos1", Integer.parseInt(pos1[0]) + "+" + (Integer.parseInt(pos1[1]) + 12) + "+" + (Integer.parseInt(pos1[2]) + 6));
+                                room.set("pos2", Integer.parseInt(pos1[0]) + "+" + (Integer.parseInt(pos1[1])) + "+" + (Integer.parseInt(pos1[2]) - 6));
                             }
                             room.set("direction", d);
                             room.set("area", 0);//面积
@@ -359,7 +415,18 @@ public class CSwitch extends PluginBase implements Listener {
                             setters.get(p.getName()).put("step", String.valueOf(step + 1));
                             break;
                         case 3:
-                            if (b.getId() == 143) {
+                            if (b.getId() == Block.SIGN_POST || b.getId() == Block.WALL_SIGN) {
+                                room.set("rule_pos", xyz);
+                                room.save();
+                                p.sendMessage(">>  请设置加入游戏木牌");
+                                setters.get(p.getName()).put("step", String.valueOf(step + 1));
+                            } else {
+                                setters.get(p.getName()).put("step", "3");
+                                p.sendMessage(">>  请破坏木牌");
+                            }
+                            break;
+                        case 4:
+                            if (b.getId() == Block.SIGN_POST || b.getId() == Block.WALL_SIGN) {
                                 room.set("button_pos", xyz);
                                 room.set("state", "true");
                                 room.set("room_world", b.level.getName());
@@ -370,8 +437,8 @@ public class CSwitch extends PluginBase implements Listener {
                                 setters.remove(p.getName());
                                 p.sendMessage(">>  房间设置已完成");
                             } else {
-                                setters.get(p.getName()).put("step", "2");
-                                p.sendMessage(">>  请破坏木质按钮");
+                                setters.get(p.getName()).put("step", "4");
+                                p.sendMessage(">>  请破坏木牌");
                             }
                             break;
                     }
@@ -387,7 +454,7 @@ public class CSwitch extends PluginBase implements Listener {
                             break;
                         case 2:
                             room.set("pos2", xyz);
-                            p.sendMessage(">>  请设置加入游戏按钮");
+                            p.sendMessage(">>  请设置游戏介绍木牌");
 
                             String[] pos1 = setters.get(p.getName()).get("pos1").split("\\+");
                             String[] pos2 = xyz.split("\\+");
@@ -419,7 +486,18 @@ public class CSwitch extends PluginBase implements Listener {
                             setters.get(p.getName()).put("step", String.valueOf(step + 1));
                             break;
                         case 3:
-                            if (b.getId() == 143) {
+                            if (b.getId() == Block.SIGN_POST || b.getId() == Block.WALL_SIGN) {
+                                room.set("rule_pos", xyz);
+                                room.save();
+                                p.sendMessage(">>  请设置加入游戏木牌");
+                                setters.get(p.getName()).put("step", String.valueOf(step + 1));
+                            } else {
+                                setters.get(p.getName()).put("step", "3");
+                                p.sendMessage(">>  请破坏木牌");
+                            }
+                            break;
+                        case 4:
+                            if (b.getId() == Block.SIGN_POST || b.getId() == Block.WALL_SIGN) {
                                 room.set("button_pos", xyz);
                                 room.set("state", "true");
                                 room.set("room_world", b.level.getName());
@@ -430,8 +508,8 @@ public class CSwitch extends PluginBase implements Listener {
                                 setters.remove(p.getName());
                                 p.sendMessage(">>  房间设置已完成");
                             } else {
-                                setters.get(p.getName()).put("step", "3");
-                                p.sendMessage(">>  请破坏木质按钮");
+                                setters.get(p.getName()).put("step", "4");
+                                p.sendMessage(">>  请破坏木牌");
                             }
                             break;
                     }
@@ -472,6 +550,7 @@ public class CSwitch extends PluginBase implements Listener {
             BlockEntity tile = event.getBlock().level.getBlockEntity(b);
             if (tile instanceof BlockEntitySign) {
                 if (((BlockEntitySign) tile).getText()[2].equals("§a点击加入游戏")) {
+                    event.setCancelled();
                     int x = (int) Math.round(Math.floor(b.x));
                     int y = (int) Math.round(Math.floor(b.y));
                     int z = (int) Math.round(Math.floor(b.z));
@@ -485,6 +564,7 @@ public class CSwitch extends PluginBase implements Listener {
                         }
                     }
                 } else if (((BlockEntitySign) tile).getText()[2].equals("§a点击查看游戏介绍")) {
+                    event.setCancelled();
                     String game_type = ((BlockEntitySign) tile).getText()[1];
                     String text = getFtTitle(game_type) + "§7§r---§c§l游戏玩法" + "\n" + getGameRule(game_type);
                     FormWindowSimple window = new FormWindowSimple(game_type + "§6游戏介绍", text);
@@ -598,12 +678,12 @@ public class CSwitch extends PluginBase implements Listener {
                         }
                         boolean file = new File(this.getDataFolder() + "/Room/" + args[1] + ".yml").delete();
                         if (file) {
-                            if (FT.containsKey(args[1])) {
-                                DelFloatingText(args[1]);
-                            }
                             if (rooms.containsKey(args[1])) {
                                 rooms.get(args[1]).stopGame();
                                 rooms.remove(args[1]);
+                            }
+                            if (FT.containsKey(args[1])) {
+                                DelFloatingText(args[1]);
                             }
                             this.setters.remove(sender.getName());
                             rooms_message.remove(args[1]);
@@ -630,12 +710,11 @@ public class CSwitch extends PluginBase implements Listener {
     }
 
     public String getRank() {
-        StringBuilder rank = new StringBuilder("注:记录的时间单位都为秒\n   记录显示为000-player是暂无记录 \n");
+        StringBuilder rank = new StringBuilder("注:玩家名字前的数字代表耗时或分数\n   记录显示为000-player是暂无记录 \n");
         ;
         Map<String, Object> c = config.getAll();
         for (String m : c.keySet()) {
             String gameName = m;
-            System.out.println(gameName);
             ArrayList<String> a = new ArrayList<>((Collection<? extends String>) config.get(gameName));
             gameName = getChineseName(gameName);
             for (int i = 0; i < 3; i++) {
@@ -656,6 +735,8 @@ public class CSwitch extends PluginBase implements Listener {
                 return "拼图";
             case "RemoveAll":
                 return "方块消消乐";
+            case "OnOneLine":
+                return "宾果消消乐";
             case "BlockPlay_4":
                 return "4X4方块华容道";
             case "BlockPlay_3":
@@ -664,8 +745,12 @@ public class CSwitch extends PluginBase implements Listener {
                 return "疯狂点击";
             case "Sudoku":
                 return "数独";
+            case "C2048":
+                return "2048";
             case "AvoidWhiteBlock":
                 return "别踩白块";
+            case "HanoiTower":
+                return "汉诺塔游戏";
             case "BeFaster":
                 return "快速反应";
             default:
@@ -674,19 +759,19 @@ public class CSwitch extends PluginBase implements Listener {
     }
 
     public void checkRank(String gameName, int spendTime, String gamer) {
-        System.out.println("--" + gameName);
-        System.out.println(spendTime);
-        System.out.println(gamer);
-        ArrayList<String> a = new ArrayList<>((Collection<? extends String>) config.get(gameName));
-        for (int i = 0; i < 3; i++) {
-            String[] in = a.get(i).split("-");
-            if (in[0].equals("000") || Integer.parseInt(in[0]) > spendTime) {
-                a.set(i, spendTime + "-" + gamer);
-                break;
+        try {
+            ArrayList<String> a = new ArrayList<>((Collection<? extends String>) config.get(gameName));
+            for (int i = 0; i < 3; i++) {
+                String[] in = a.get(i).split("-");
+                if (in[0].equals("000") || Integer.parseInt(in[0]) > spendTime) {
+                    a.set(i, spendTime + "-" + gamer);
+                    break;
+                }
             }
+            config.set(gameName, a);
+            config.save();
+        } catch (Exception e) {
         }
-        config.set(gameName, a);
-        config.save();
     }
 
     public void setFloatingText(String room_name) {
@@ -697,6 +782,12 @@ public class CSwitch extends PluginBase implements Listener {
         double x1 = Integer.parseInt(p1[0]);
         double y1 = Integer.parseInt(p1[1]);
         double z1 = Integer.parseInt(p1[2]);
+
+        String[] p2 = ((String) m.get("rule_pos")).split("\\+");
+
+        double x2 = Integer.parseInt(p2[0]);
+        double y2 = Integer.parseInt(p2[1]);
+        double z2 = Integer.parseInt(p2[2]);
 
         Block block;
         BlockEntity tile;
@@ -711,7 +802,7 @@ public class CSwitch extends PluginBase implements Listener {
         }
         sign.setText(PREFIX, (String) m.get("game_type"), "§a点击加入游戏");
 
-        block = level.getBlock(new Vector3(x1, y1 + 1, z1));
+        block = level.getBlock(new Vector3(x2, y2, z2));
         tile = level.getBlockEntity(block);
         if (tile instanceof BlockEntitySign) {
             sign1 = (BlockEntitySign) tile;
@@ -726,7 +817,7 @@ public class CSwitch extends PluginBase implements Listener {
     public LinkedHashMap<String, ArrayList<BlockEntitySign>> FT = new LinkedHashMap<>();
 
     public void changeSign(String roomName) {
-        BlockEntitySign sign = FT.get(roomName).get(1);
+        BlockEntitySign sign = FT.get(roomName).get(0);
         Room room = rooms.get(roomName);
         if (room.game == 0) {
             sign.setText(PREFIX, room.game_type, "§a点击加入游戏");

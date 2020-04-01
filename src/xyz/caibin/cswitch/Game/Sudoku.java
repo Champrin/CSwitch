@@ -8,14 +8,12 @@ import cn.nukkit.event.block.BlockPlaceEvent;
 import cn.nukkit.event.player.PlayerInteractEvent;
 import xyz.caibin.cswitch.Room;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 
 public class Sudoku extends Game {
 
     public LinkedHashMap<String, Integer> value;
-    private ArrayList<Integer> num = new ArrayList<>(Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9));
+    public LinkedHashMap<String, Boolean> check = new LinkedHashMap<>();
 
     public Sudoku(Room plugin) {
         this.plugin = plugin;
@@ -31,19 +29,19 @@ public class Sudoku extends Game {
     public void onBreak(BlockBreakEvent event) {
         if (this.plugin.finish) return;
         if (this.game_type.equals("Sudoku")) {
-            if (this.plugin.game != 1) return;
             Player player = event.getPlayer();
             if (this.plugin.isInGame(player)) {
                 Block block = event.getBlock();
-                if (block.getId() != Block.WOOL && !num.contains(block.getDamage())) {
+                if (block.getDamage() == 15) {
                     event.setCancelled(true);
                     return;
                 }
                 String position = getPosition(block);
                 if (this.isInArena(position)) {
-                    block.level.setBlock(block, Block.get(0, 0));
+                    if (!this.check.get(position)) return;
                     if (isTrue(position, block.getDamage())) {
                         this.plugin.rank = plugin.rank - 1;
+                        this.check.put(position, false);
                     }
                 } else {
                     event.setCancelled(true);
@@ -56,16 +54,12 @@ public class Sudoku extends Game {
     public void onPlace(BlockPlaceEvent event) {
         if (this.plugin.finish) return;
         if (this.game_type.equals("Sudoku")) {
-            if (this.plugin.game != 1) return;
             Player player = event.getPlayer();
             if (this.plugin.isInGame(player)) {
                 Block block = event.getBlock();
-                if (block.getId() != Block.WOOL && !num.contains(block.getDamage())) {
-                    event.setCancelled(true);
-                    return;
-                }
                 String position = getPosition(block);
                 if (this.isInArena(position)) {
+                    if (check.get(position)) return;
                     updateBlock(block, position);
                 } else {
                     event.setCancelled(true);
@@ -82,32 +76,69 @@ public class Sudoku extends Game {
         int value = block.getDamage();
         if (isTrue(position, value)) {
             this.plugin.rank = plugin.rank + 1;
+            this.check.put(position, true);
         }
         checkFinish();
     }
 
     private boolean isTrue(String position, int value) {
-        System.out.println("a-"+this.value.get(position)+"b-"+value);
         return this.value.get(position) == value;
     }
 
     private String getPosition(Block block) {
-        String direction = (String) this.plugin.data.get("direction");
-        String[] p1 = ((String) this.plugin.data.get("pos1")).split("\\+");
-        String[] p2 = ((String) this.plugin.data.get("pos2")).split("\\+");
-        int xi = (Math.min(Integer.parseInt(p1[0]), Integer.parseInt(p2[0])));
-        int yi = (Math.min(Integer.parseInt(p1[1]), Integer.parseInt(p2[1])));
-        int zi = (Math.min(Integer.parseInt(p1[2]), Integer.parseInt(p2[2])));
+        int xi = plugin.xi + 1;
+        int ya = plugin.ya - 1;
+        int zi = plugin.zi + 1;
+        int xa = plugin.xa - 1;
+        int za = plugin.za - 1;
         int x = (int) Math.round(Math.floor(block.x));
         int y = (int) Math.round(Math.floor(block.y));
         int z = (int) Math.round(Math.floor(block.z));
-        switch (direction) {
+        int h = 0, l = 0;
+        if (y <= ya && y > ya - 3) {
+            l = Math.abs(ya - y);
+        } else if (y < ya - 3 && y > ya - 7) {
+            l = Math.abs(ya - y) - 1;
+        } else if (y < ya - 7 && y > ya - 11) {
+            l = Math.abs(ya - y) - 2;
+        }
+        switch (plugin.direction) {
             case "x+":
+                if (x < xi + 3) {
+                    h = Math.abs(x - xi);
+                } else if (x > xi + 3 && x < xi + 7) {
+                    h = Math.abs(x - xi) - 1;
+                } else if (x > xi + 7 && x < xi + 11) {
+                    h = Math.abs(x - xi) - 2;
+                }
+                return Math.abs(l) + "-" + Math.abs(h);
             case "x-":
-                return (x - xi) + "-" + (y - yi);
+                if (x < xa - 3) {
+                    h = Math.abs(xa - x);
+                } else if (x > xa - 3 && x < xa - 7) {
+                    h = Math.abs(xa - x) - 1;
+                } else if (x > xa - 7 && x < xa - 11) {
+                    h = Math.abs(xa - x) - 2;
+                }
+                return Math.abs(l) + "-" + Math.abs(h);
             case "z+":
+                if (z < zi + 3) {
+                    h = Math.abs(z - zi);
+                } else if (z > zi + 3 && z < zi + 7) {
+                    h = Math.abs(z - zi) - 1;
+                } else if (z > zi + 7 && z < zi + 11) {
+                    h = Math.abs(z - zi) - 2;
+                }
+                return Math.abs(l) + "-" + Math.abs(h);
             case "z-":
-                return (z - zi) + "-" + (y - yi);
+                if (z < za - 3) {
+                    h = Math.abs(za - z);
+                } else if (z > za - 3 && z < za - 7) {
+                    h = Math.abs(za - z) - 1;
+                } else if (z > za - 7 && z < za - 11) {
+                    h = Math.abs(za - z) - 2;
+                }
+                return Math.abs(l) + "-" + Math.abs(h);
             default:
                 return null;
         }

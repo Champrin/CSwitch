@@ -6,7 +6,6 @@ import cn.nukkit.event.EventHandler;
 import cn.nukkit.event.Listener;
 import cn.nukkit.event.player.PlayerInteractEvent;
 import cn.nukkit.item.Item;
-import cn.nukkit.level.Level;
 import cn.nukkit.math.Vector3;
 import xyz.caibin.cswitch.Room;
 
@@ -31,45 +30,38 @@ public class Jigsaw extends Game implements Listener {
     }
 
     public void setRightPlace() {
-        String direction = (String) this.plugin.data.get("direction");
-        String[] p1 = ((String) this.plugin.data.get("pos1")).split("\\+");
-        String[] p2 = ((String) this.plugin.data.get("pos2")).split("\\+");
-        switch (direction) {
+        switch (plugin.direction) {
             case "x+": {
-                int z = Integer.parseInt(p1[2]);
-                for (int y = Integer.parseInt(p1[1]); y >= Integer.parseInt(p2[1]); y--) {
-                    for (int x = Integer.parseInt(p1[0]); x <= Integer.parseInt(p2[0]); x++) {
-                        Vector3 v3 = new Vector3(x, y, z);
+                for (int y = plugin.ya; y >= plugin.yi; y--) {
+                    for (int x = plugin.xi; x <= plugin.xa; x++) {
+                        Vector3 v3 = new Vector3(x, y, plugin.zi);
                         Pos.add(v3);
                     }
                 }
                 break;
             }
             case "x-": {
-                int z = Integer.parseInt(p1[2]);
-                for (int y = Integer.parseInt(p1[1]); y >= Integer.parseInt(p2[1]); y--) {
-                    for (int x = Integer.parseInt(p1[0]); x >= Integer.parseInt(p2[0]); x--) {
-                        Vector3 v3 = new Vector3(x, y, z);
+                for (int y = plugin.ya; y >= plugin.yi; y--) {
+                    for (int x = plugin.xa; x >= plugin.xi; x--) {
+                        Vector3 v3 = new Vector3(x, y, plugin.zi);
                         Pos.add(v3);
                     }
                 }
                 break;
             }
             case "z+": {
-                int x = Integer.parseInt(p1[0]);
-                for (int y = Integer.parseInt(p1[1]); y >= Integer.parseInt(p2[1]); y--) {
-                    for (int z = Integer.parseInt(p1[2]); z <= Integer.parseInt(p2[2]); z++) {
-                        Vector3 v3 = new Vector3(x, y, z);
+                for (int y = plugin.ya; y >= plugin.yi; y--) {
+                    for (int z = plugin.zi; z <= plugin.za; z++) {
+                        Vector3 v3 = new Vector3(plugin.xi, y, z);
                         Pos.add(v3);
                     }
                 }
                 break;
             }
             case "z-": {
-                int x = Integer.parseInt(p1[0]);
-                for (int y = Integer.parseInt(p1[1]); y >= Integer.parseInt(p2[1]); y--) {
-                    for (int z = Integer.parseInt(p1[2]); z >= Integer.parseInt(p2[2]); z--) {
-                        Vector3 v3 = new Vector3(x, y, z);
+                for (int y = plugin.ya; y >= plugin.yi; y--) {
+                    for (int z = plugin.za; z >= plugin.zi; z--) {
+                        Vector3 v3 = new Vector3(plugin.xi, y, z);
                         Pos.add(v3);
                     }
                 }
@@ -79,51 +71,43 @@ public class Jigsaw extends Game implements Listener {
     }
 
     public void setBlock() {
-        String direction = (String) this.plugin.data.get("direction");
-        String[] p1 = ((String) this.plugin.data.get("pos1")).split("\\+");
-        String[] p2 = ((String) this.plugin.data.get("pos2")).split("\\+");
-        Level level = this.plugin.plugin.getServer().getLevelByName((String) this.plugin.data.get("room_world"));
         int a = 0;
-        switch (direction) {
+        switch (plugin.direction) {
             case "x+": {
-                int z = Integer.parseInt(p1[2]);
-                for (int y = Integer.parseInt(p1[1]) + 6; y >= Integer.parseInt(p2[1]) + 6; y--) {
-                    for (int x = Integer.parseInt(p1[0]); x <= Integer.parseInt(p2[0]); x++) {
+                for (int y = plugin.ya + 6; y >= plugin.yi + 6; y--) {
+                    for (int x = plugin.xi; x <= plugin.xa; x++) {
                         String[] I = layout.get(a).split("-");
-                        level.setBlock(new Vector3(x, y, z), Block.get(Integer.parseInt(I[0]), Integer.parseInt(I[1])));
+                        plugin.level.setBlock(new Vector3(x, y, plugin.zi), Block.get(Integer.parseInt(I[0]), Integer.parseInt(I[1])));
                         a = a + 1;
                     }
                 }
                 break;
             }
             case "x-": {
-                int z = Integer.parseInt(p1[2]);
-                for (int y = Integer.parseInt(p1[1]) + 6; y >= Integer.parseInt(p2[1]) + 6; y--) {
-                    for (int x = Integer.parseInt(p1[0]); x >= Integer.parseInt(p2[0]); x--) {
+                for (int y = plugin.ya + 6; y >= plugin.yi + 6; y--) {
+                    for (int x = plugin.xa; x >= plugin.xi; x--) {
                         String[] I = layout.get(a).split("-");
-                        level.setBlock(new Vector3(x, y, z), Block.get(Integer.parseInt(I[0]), Integer.parseInt(I[1])));
+                        plugin.level.setBlock(new Vector3(x, y, plugin.zi), Block.get(Integer.parseInt(I[0]), Integer.parseInt(I[1])));
                         a = a + 1;
                     }
                 }
                 break;
             }
             case "z+": {
-                int x = Integer.parseInt(p1[0]);
-                for (int y = Integer.parseInt(p1[1]) + 6; y >= Integer.parseInt(p2[1]) + 6; y--) {
-                    for (int z = Integer.parseInt(p1[2]); z <= Integer.parseInt(p2[2]); z++) {
+                for (int y = plugin.ya + 6; y >= plugin.yi + 6; y--) {
+                    for (int z = plugin.zi; z <= plugin.za; z++) {
                         String[] I = layout.get(a).split("-");
-                        level.setBlock(new Vector3(x, y, z), Block.get(Integer.parseInt(I[0]), Integer.parseInt(I[1])));
+                        plugin.level.setBlock(new Vector3(plugin.xi, y, z), Block.get(Integer.parseInt(I[0]), Integer.parseInt(I[1])));
                         a = a + 1;
                     }
                 }
                 break;
             }
             case "z-": {
-                int x = Integer.parseInt(p1[0]);
-                for (int y = Integer.parseInt(p1[1]) + 6; y >= Integer.parseInt(p2[1]) + 6; y--) {
-                    for (int z = Integer.parseInt(p1[2]); z >= Integer.parseInt(p2[2]); z--) {
+                for (int y = plugin.ya + 6; y >= plugin.yi + 6; y--) {
+                    for (int z = plugin.za; z >= plugin.zi; z--) {
                         String[] I = layout.get(a).split("-");
-                        level.setBlock(new Vector3(x, y, z), Block.get(Integer.parseInt(I[0]), Integer.parseInt(I[1])));
+                        plugin.level.setBlock(new Vector3(plugin.xi, y, z), Block.get(Integer.parseInt(I[0]), Integer.parseInt(I[1])));
                         a = a + 1;
                     }
                 }
@@ -164,9 +148,7 @@ public class Jigsaw extends Game implements Listener {
 
     public void updateBlock(Block block, String Hand) {
         String[] Item = Hand.split("-");
-        Level level = block.getLevel();
-        level.setBlock(block, Block.get(Integer.parseInt(Item[0]), Integer.parseInt(Item[1])));
-
+        plugin.level.setBlock(block, Block.get(Integer.parseInt(Item[0]), Integer.parseInt(Item[1])));
         checkFinish();
     }
 

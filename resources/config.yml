@@ -1,36 +1,48 @@
 LightsOut:
- - 000-player
- - 000-player
- - 000-player
+  - 000-player
+  - 000-player
+  - 000-player
 OneToOne:
- - 000-player
- - 000-player
- - 000-player
+  - 000-player
+  - 000-player
+  - 000-player
 Jigsaw:
- - 000-player
- - 000-player
- - 000-player
+  - 000-player
+  - 000-player
+  - 000-player
 RemoveAll:
- - 000-player
- - 000-player
- - 000-player
+  - 000-player
+  - 000-player
+  - 000-player
 BlockPlay_4:
- - 000-player
- - 000-player
- - 000-player
+  - 000-player
+  - 000-player
+  - 000-player
 BlockPlay_3:
- - 000-player
- - 000-player
- - 000-player
+  - 000-player
+  - 000-player
+  - 000-player
 CrazyClick:
- - 000-player
- - 000-player
- - 000-player
+  - 000-player
+  - 000-player
+  - 000-player
 Sudoku:
- - 000-player
- - 000-player
- - 000-player
+  - 000-player
+  - 000-player
+  - 000-player
 AvoidWhiteBlock:
- - 000-player
- - 000-player
- - 000-player
+  - 000-player
+  - 000-player
+  - 000-player
+BeFaster:
+  - 000-player
+  - 000-player
+  - 000-player
+C2048:
+  - 000-player
+  - 000-player
+  - 000-player
+OnOneLine:
+  - 000-player
+  - 000-player
+  - 000-player

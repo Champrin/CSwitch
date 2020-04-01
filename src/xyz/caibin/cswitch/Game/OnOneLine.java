@@ -5,6 +5,7 @@ import cn.nukkit.block.Block;
 import cn.nukkit.event.EventHandler;
 import cn.nukkit.event.Listener;
 import cn.nukkit.event.player.PlayerInteractEvent;
+import cn.nukkit.item.Item;
 import cn.nukkit.level.Level;
 import cn.nukkit.math.Vector3;
 import xyz.caibin.cswitch.Room;
@@ -17,12 +18,14 @@ public class OnOneLine extends Game implements Listener
         this.area = (int) this.plugin.data.get("area");
     }
 
+    Block firstBlock = null;
 
     @EventHandler
     public void onTouch(PlayerInteractEvent event) {
         if (this.plugin.finish) return;
-        if (this.game_type.equals("RemoveAll")) {
+        if (this.game_type.equals("OnOneLine")) {
             Block block = event.getBlock();
+            Level level = block.level;
             Player player = event.getPlayer();
             int x = (int) Math.round(Math.floor(block.x));
             int y = (int) Math.round(Math.floor(block.y));
@@ -31,7 +34,20 @@ public class OnOneLine extends Game implements Listener
             if (this.plugin.isInGame(player)) {
                 if (this.plugin.isInArena(pos)) {
                     event.setCancelled(true);
-                    this.updateBlock(block);
+                    if (firstBlock == null){
+                        this.firstBlock = block;
+                    }else
+                    {
+                        level.setBlock(firstBlock, block);
+                        level.setBlock(block, firstBlock);
+                        this.updateBlock(firstBlock);
+                        firstBlock = null;
+                    }
+                    int item = player.getInventory().getItemInHand().getId();
+                    if (item == Item.DOOR_BLOCK){
+                        this.plugin.finish = true;
+                        this.count = 0;
+                    }
                 }
             }
         }
@@ -49,7 +65,7 @@ public class OnOneLine extends Game implements Listener
     public void EliminateBlock(Block block, int mate) {
         if (block.getId() != 159) return;
 
-        Level level = block.getLevel();
+        Level level = block.level;
         String direction = (String) this.plugin.data.get("direction");
         int x = (int) Math.round(Math.floor(block.x));
         int y = (int) Math.round(Math.floor(block.y));
@@ -126,11 +142,7 @@ public class OnOneLine extends Game implements Listener
     }
 
     public void checkFinish() {
-        if (check>=area) {
-            this.plugin.finish = true;
-            this.count = 0;
-            this.check = 0;
-        }
+
     }
    /*TODO 自动靠拢
      public void clearAir(String direction, int xi, int xa, int yi, int ya, int zi, int za, Level level) {

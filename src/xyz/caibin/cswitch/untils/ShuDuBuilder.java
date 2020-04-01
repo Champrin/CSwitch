@@ -7,13 +7,13 @@ import java.util.Random;
 public class ShuDuBuilder {
     public ShuDuBuilder() {
         this.generateShuDu();
-        x=delete(n,4);
+        x = delete(n, 4);
     }
 
     /**
      * 存储数字的数组
      */
-    private int[][] x ;
+    private int[][] x;
     private int[][] n = new int[9][9];
     /**
      * 生成随机数字的源数组，随机数字从该数组中产生
@@ -55,47 +55,68 @@ public class ShuDuBuilder {
             }
         }
     }
-    public LinkedHashMap<String,Integer> value = new LinkedHashMap<>();
+
+    public LinkedHashMap<String, Integer> value = new LinkedHashMap<>();
+
     public int[][] delete(int[][] n, int eachNum) {
         for (int i = 0; i < eachNum; i++) {
             int h = new Random().nextInt(3);
             int l = new Random().nextInt(3);
-            value.put(h+"-"+l,n[h][l]);
-            n[h][l] = 0;
+            if (n[h][l] != 0) {
+                value.put(h + "-" + l, n[h][l]);
+                n[h][l] = 0;
+            }
             h = new Random().nextInt(3);
             l = new Random().nextInt(3) + 3;
-            value.put(h+"-"+l,n[h][l]);
-            n[h][l] = 0;
+            if (n[h][l] != 0) {
+                value.put(h + "-" + l, n[h][l]);
+                n[h][l] = 0;
+            }
             h = new Random().nextInt(3);
             l = new Random().nextInt(3) + 6;
-            value.put(h+"-"+l,n[h][l]);
-            n[h][l] = 0;
+            if (n[h][l] != 0) {
+                value.put(h + "-" + l, n[h][l]);
+                n[h][l] = 0;
+            }
 
             h = new Random().nextInt(3 + 3);
             l = new Random().nextInt(3);
-            value.put(h+"-"+l,n[h][l]);
-            n[h][l] = 0;
+            if (n[h][l] != 0) {
+                value.put(h + "-" + l, n[h][l]);
+                n[h][l] = 0;
+            }
             h = new Random().nextInt(3) + 3;
             l = new Random().nextInt(3) + 3;
-            value.put(h+"-"+l,n[h][l]);
-            n[h][l] = 0;
+            if (n[h][l] != 0) {
+                value.put(h + "-" + l, n[h][l]);
+                n[h][l] = 0;
+            }
             h = new Random().nextInt(3) + 3;
             l = new Random().nextInt(3) + 6;
-            value.put(h+"-"+l,n[h][l]);
-            n[h][l] = 0;
+            if (n[h][l] != 0) {
+                value.put(h + "-" + l, n[h][l]);
+                n[h][l] = 0;
+            }
 
             h = new Random().nextInt(3) + 6;
             l = new Random().nextInt(3);
-            value.put(h+"-"+l,n[h][l]);
-            n[h][l] = 0;
+            if (n[h][l] != 0) {
+                value.put(h + "-" + l, n[h][l]);
+                n[h][l] = 0;
+            }
             h = new Random().nextInt(3) + 6;
             l = new Random().nextInt(3) + 3;
-            value.put(h+"-"+l,n[h][l]);
-            n[h][l] = 0;
+            if (n[h][l] != 0) {
+                value.put(h + "-" + l, n[h][l]);
+                n[h][l] = 0;
+            }
+
             h = new Random().nextInt(3) + 6;
             l = new Random().nextInt(3) + 6;
-            value.put(h+"-"+l,n[h][l]);
-            n[h][l] = 0;
+            if (n[h][l] != 0) {
+                value.put(h + "-" + l, n[h][l]);
+                n[h][l] = 0;
+            }
         }
         return n;
     }
@@ -211,21 +232,20 @@ public class ShuDuBuilder {
     }
 
     /**
-     *
      * @return 完整数独
      */
     public int[][] getAllValue() {
         return n;
     }
+
     /**
-     *
-     * @return  空数独的答案LinkedHashMap 坐标:数字答案
+     * @return 空数独的答案LinkedHashMap 坐标:数字答案
      */
-    public LinkedHashMap<String,Integer> getValue() {
+    public LinkedHashMap<String, Integer> getValue() {
         return this.value;
     }
+
     /**
-     *
      * @return 数独的题目
      */
     public int[][] getKey() {

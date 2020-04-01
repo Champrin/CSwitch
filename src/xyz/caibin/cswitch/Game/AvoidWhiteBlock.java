@@ -29,24 +29,22 @@ public class AvoidWhiteBlock extends Game {
     }
 
     public void getMaxAndMin() {
-        String[] p1 = ((String) plugin.data.get("pos1")).split("\\+");
-        String[] p2 = ((String) plugin.data.get("pos2")).split("\\+");
-        switch ((String) plugin.data.get("direction")) {
+        switch (plugin.direction) {
             case "x+":
             case "x-":
-                this.min = (Math.min(Integer.parseInt(p1[0]), Integer.parseInt(p2[0])));
-                this.max = (Math.max(Integer.parseInt(p1[0]), Integer.parseInt(p2[0])));
-                this.o = Integer.parseInt(p1[2]);
+                this.min = plugin.xi;
+                this.max = plugin.xa;
+                this.o = plugin.zi;
                 break;
             case "z+":
             case "z-":
-                this.min = (Math.min(Integer.parseInt(p1[2]), Integer.parseInt(p2[2])));
-                this.max = (Math.max(Integer.parseInt(p1[2]), Integer.parseInt(p2[2])));
-                this.o = Integer.parseInt(p1[0]);
+                this.min = plugin.zi;
+                this.max = plugin.za;
+                this.o = plugin.xi;
                 break;
         }
-        this.minY = (Math.min(Integer.parseInt(p1[1]), Integer.parseInt(p2[1])));
-        this.maxY = (Math.max(Integer.parseInt(p1[1]), Integer.parseInt(p2[1])));
+        this.minY = plugin.ya;
+        this.maxY = plugin.yi;
     }
 
     @EventHandler
@@ -80,7 +78,7 @@ public class AvoidWhiteBlock extends Game {
         Level level = block.level;
         this.useTimes = useTimes - 1;
         int newW = new Random().nextInt(width);
-        switch ((String) plugin.data.get("direction")) {
+        switch (plugin.direction) {
             case "x+":
                 for (int x = min; x <= max; x++) {
                     level.setBlock(new Vector3(x, (int) Math.round(Math.floor(block.y)), o), Block.get(0, 0));

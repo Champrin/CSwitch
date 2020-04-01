@@ -2,10 +2,13 @@ package xyz.caibin.cswitch;
 
 import cn.nukkit.Player;
 import cn.nukkit.block.Block;
+import cn.nukkit.entity.Entity;
 import cn.nukkit.event.EventHandler;
+import cn.nukkit.event.EventPriority;
 import cn.nukkit.event.Listener;
 import cn.nukkit.event.block.BlockBreakEvent;
 import cn.nukkit.event.block.BlockPlaceEvent;
+import cn.nukkit.event.entity.EntityDamageEvent;
 import cn.nukkit.event.player.PlayerDeathEvent;
 import cn.nukkit.event.player.PlayerDropItemEvent;
 import cn.nukkit.event.player.PlayerKickEvent;
@@ -35,7 +38,9 @@ public class Room implements Listener {
     public int game = 0;
     public boolean finish = false;
     public int rank = 0;
-    public int area;
+    public Level level;
+    public int xi, xa, yi, ya, zi, za;
+    public String direction;
 
     public Room(String id, CSwitch plugin) {
         this.plugin = plugin;
@@ -48,61 +53,28 @@ public class Room implements Listener {
                 this.plugin.getServer().getScheduler().scheduleRepeatingTask(new RoomSchedule_2(this), 20);
                 break;
             case "BeFaster":
-                this.area = (int) data.get("area");
                 this.plugin.getServer().getScheduler().scheduleRepeatingTask(new RoomSchedule_3(this), 20);
                 break;
             default:
                 this.plugin.getServer().getScheduler().scheduleRepeatingTask(new RoomSchedule(this), 20);
                 break;
         }
+        String[] p1 = ((String) data.get("pos1")).split("\\+");
+        String[] p2 = ((String) data.get("pos2")).split("\\+");
+
+        this.direction = (String) data.get("direction");
+        this.level = this.plugin.getServer().getLevelByName((String) data.get("room_world"));
+        this.xi = (Math.min(Integer.parseInt(p1[0]), Integer.parseInt(p2[0])));
+        this.xa = (Math.max(Integer.parseInt(p1[0]), Integer.parseInt(p2[0])));
+        this.yi = (Math.min(Integer.parseInt(p1[1]), Integer.parseInt(p2[1])));
+        this.ya = (Math.max(Integer.parseInt(p1[1]), Integer.parseInt(p2[1])));
+        this.zi = (Math.min(Integer.parseInt(p1[2]), Integer.parseInt(p2[2])));
+        this.za = (Math.max(Integer.parseInt(p1[2]), Integer.parseInt(p2[2])));
+
         registerEvent();
         setGameArena();
     }
 
-    public String getRandPos()//在游戏区域内随机获取坐标
-    {
-        String[] p1 = ((String) data.get("pos1")).split("\\+");
-        String[] p2 = ((String) data.get("pos2")).split("\\+");
-        int xi = (Math.min(Integer.parseInt(p1[0]), Integer.parseInt(p2[0])));
-        int xa = (Math.max(Integer.parseInt(p1[0]), Integer.parseInt(p2[0])));
-        int yi = (Math.min(Integer.parseInt(p1[1]), Integer.parseInt(p2[1])));
-        int ya = (Math.max(Integer.parseInt(p1[1]), Integer.parseInt(p2[1])));
-        int zi = (Math.min(Integer.parseInt(p1[2]), Integer.parseInt(p2[2])));
-        int za = (Math.max(Integer.parseInt(p1[2]), Integer.parseInt(p2[2])));
-
-        int x = xi;
-        int z = zi;
-        int y = new Random().nextInt(ya - yi) + yi;
-
-        if (zi - za != 0) {
-            z = new Random().nextInt(za - zi) + zi;
-        }
-        if (xi - xa != 0) {
-            x = new Random().nextInt(xa - xi) + xi;
-        }
-        return x + "+" + y + "+" + z;
-    }
-
-    public void RedAlert() {
-        for (int i = 1; i <= this.area / 8; i++) {
-            String pos = getRandPos();
-            String[] p1 = pos.split("\\+");
-            Level level = plugin.getServer().getLevelByName((String) data.get("room_world"));
-            Block block = level.getBlock(new Vector3(Integer.parseInt(p1[0]), Integer.parseInt(p1[1]), Integer.parseInt(p1[2])));
-            if (block.getId() != 0) {
-                if (block.getId() == 35) {
-                    int mate = block.getDamage();
-                    if (mate == 0) {
-                        level.setBlock(block, Block.get(35, 4));
-                    } else if (mate == 4) {
-                        level.setBlock(block, Block.get(35, 14));
-                    } else if (mate == 14) {
-                        level.setBlock(block, Block.get(20, 0));
-                    }
-                }
-            }
-        }
-    }
 
     //这里使用了若水的保存物品NBT的方法
     private static byte[] hexStringToBytes(String hexString) {
@@ -166,17 +138,8 @@ public class Room implements Listener {
         playerBag.clear();
     }
 
-    public void setGameArena() {
-        Level level = this.plugin.getServer().getLevelByName((String) data.get("room_world"));
-        String direction = (String) data.get("direction");
-        String[] p1 = ((String) data.get("pos1")).split("\\+");
-        String[] p2 = ((String) data.get("pos2")).split("\\+");
-        int xi = (Math.min(Integer.parseInt(p1[0]), Integer.parseInt(p2[0])));
-        int xa = (Math.max(Integer.parseInt(p1[0]), Integer.parseInt(p2[0])));
-        int yi = (Math.min(Integer.parseInt(p1[1]), Integer.parseInt(p2[1])));
-        int ya = (Math.max(Integer.parseInt(p1[1]), Integer.parseInt(p2[1])));
-        int zi = (Math.min(Integer.parseInt(p1[2]), Integer.parseInt(p2[2])));
-        int za = (Math.max(Integer.parseInt(p1[2]), Integer.parseInt(p2[2])));
+    public void setGameArena(){
+
         switch (game_type) {
             case "Sudoku":
                 int a = 0, b = 0;
@@ -274,9 +237,45 @@ public class Room implements Listener {
             case "CrazyClick":
                 level.setBlock(new Vector3(xi, yi, zi), Block.get(57, 0));
                 break;
+            case "HanoiTower":
+                int ma = 0;
+                int aa = 1;
+                switch (direction) {
+                    case "x+":
+                    case "x-":
+                        for (int x = xi; x <= xa; x++) {
+                            for (int y = yi; y <= ya; y++) {
+                                level.setBlock(new Vector3(x, y, zi), Block.get(35, ma));
+                            }
+                            if (aa == 1) {
+                                ma = 15;
+                                aa = 2;
+                            } else {
+                                ma = 0;
+                                aa = 1;
+                            }
+                        }
+                        break;
+                    case "z+":
+                    case "z-":
+                        for (int z = zi; z <= za; z++) {
+                            for (int y = yi; y <= ya; y++) {
+                                level.setBlock(new Vector3(xi, y, z), Block.get(35, ma));
+                            }
+                            if (aa == 1) {
+                                ma = 15;
+                                aa = 2;
+                            } else {
+                                ma = 0;
+                                aa = 1;
+                            }
+                        }
+                        break;
+                }
+                break;
             default:
                 int id = 35, mate = 5;
-                if (game_type.equals("Jigsaw") || game_type.equals("BlockPlay_4") || game_type.equals("BlockPlay_3")) {
+                if (game_type.equals("Jigsaw") || game_type.equals("BlockPlay_4") || game_type.equals("BlockPlay_3") || game_type.equals("C2048")) {
                     id = 20;
                     mate = 0;
                 } else if (game_type.equals("BeFaster")) {
@@ -306,14 +305,7 @@ public class Room implements Listener {
     }
 
     public boolean isInArena(int[] pos) {
-        String[] p1 = ((String) data.get("pos1")).split("\\+");
-        String[] p2 = ((String) data.get("pos2")).split("\\+");
-        int xi = (Math.min(Integer.parseInt(p1[0]), Integer.parseInt(p2[0])));
-        int xa = (Math.max(Integer.parseInt(p1[0]), Integer.parseInt(p2[0])));
-        int yi = (Math.min(Integer.parseInt(p1[1]), Integer.parseInt(p2[1])));
-        int ya = (Math.max(Integer.parseInt(p1[1]), Integer.parseInt(p2[1])));
-        int zi = (Math.min(Integer.parseInt(p1[2]), Integer.parseInt(p2[2])));
-        int za = (Math.max(Integer.parseInt(p1[2]), Integer.parseInt(p2[2])));
+
         return pos[0] >= xi && pos[0] <= xa && pos[1] >= yi && pos[1] <= ya && pos[2] >= zi && pos[2] <= za;
     }
 
@@ -338,9 +330,24 @@ public class Room implements Listener {
                 }
                 break;
             case "Sudoku":
+                int a = 0;
                 for (int i = 1; i <= 9; i++) {
-                    this.gamePlayer.getInventory().setItem(i, Item.get(35, i, 64));
+                    this.gamePlayer.getInventory().setItem(a, Item.get(35, i, 64));
+                    a = a + 1;
                 }
+                break;
+            case "C2048":
+                Item item = Item.get(35, 0, 1);
+                this.gamePlayer.getInventory().setItem(1, item.setCustomName(">>  §a上  <<"));
+                item = Item.get(35, 1, 1);
+                this.gamePlayer.getInventory().setItem(2, item.setCustomName(">>  §a下  <<"));
+                item = Item.get(35, 2, 1);
+                this.gamePlayer.getInventory().setItem(3, item.setCustomName(">>  §a左  <<"));
+                item = Item.get(35, 3, 1);
+                this.gamePlayer.getInventory().setItem(4, item.setCustomName(">>  §a右  <<"));
+                break;
+            case "OnOneLine":
+                this.gamePlayer.getInventory().setItem(1, (Item.get(Item.DOOR_BLOCK, 0, 1)).setCustomName(">>  §a我完成了  <<"));
                 break;
             default:
                 break;
@@ -358,8 +365,14 @@ public class Room implements Listener {
         }
         this.finish = false;
         this.gamePlayer = p;
+
         p.sendMessage(">  你加入了游戏,等待游戏开始");
         p.sendMessage(">  输入@hub可退出游戏！");
+        if (game_type.equals("OnOneLine")) {
+            p.sendMessage(">>  §c当你认为你已经不能再进行下一步时,请切换“门”物品以结束游戏！此游戏排行榜以分统计！");
+            p.sendMessage(">>  §c当你认为你已经不能再进行下一步时,请切换“门”物品以结束游戏！此游戏排行榜以分统计！");
+            p.sendMessage(">>  §c当你认为你已经不能再进行下一步时,请切换“门”物品以结束游戏！此游戏排行榜以分统计！");
+        }
     }
 
     public void setStartArena() {
@@ -373,10 +386,14 @@ public class Room implements Listener {
             case "Jigsaw":
                 setStartArena_Jigsaw();
                 break;
+            case "HanoiTower":
+                setStartArena_HanoiTower();
+                break;
             case "Sudoku":
                 setStartArena_Sudoku();
                 break;
             case "RemoveAll":
+            case "OnOneLine":
                 setStartArena_RemoveAll();
                 break;
             case "BlockPlay_4":
@@ -388,11 +405,15 @@ public class Room implements Listener {
             case "AvoidWhiteBlock":
                 setStartArena_AvoidWhiteBlock();
                 break;
+            case "C2048":
+                setStartArena_C2048();
+                break;
         }
     }
 
     public Jigsaw jigsaw = null;
     public Sudoku sudoku = null;
+    public C2048 c2048 = null;
 
     public void registerEvent() {
         switch (this.game_type) {
@@ -406,12 +427,22 @@ public class Room implements Listener {
                 if (jigsaw != null) return;
                 jigsaw = new Jigsaw(this);
                 break;
+            case "C2048":
+                if (c2048 != null) return;
+                c2048 = new C2048(this);
+                break;
             case "Sudoku":
                 if (sudoku != null) return;
                 sudoku = new Sudoku(this);
                 break;
             case "RemoveAll":
                 new RemoveAll(this);
+                break;
+            case "HanoiTower":
+                new HanoiTower(this);
+                break;
+            case "OnOneLine":
+                new OnOneLine(this);
                 break;
             case "BlockPlay_4":
                 new BlockPlay_4(this);
@@ -428,19 +459,44 @@ public class Room implements Listener {
             case "BeFaster":
                 new BeFaster(this);
                 break;
+
         }
     }
 
+    public void setStartArena_HanoiTower() {
+        switch ((String) data.get("direction")) {
+            case "x+":
+            case "z-":
+                level.setBlock(new Vector3(xi, yi, za), Block.get(35, 3));
+                level.setBlock(new Vector3(xi, yi+1, za), Block.get(35, 2));
+                level.setBlock(new Vector3(xi, yi+2, za), Block.get(35, 1));
+                break;
+            case "x-":
+            case "z+":
+                level.setBlock(new Vector3(xa, yi, zi), Block.get(35, 3));
+                level.setBlock(new Vector3(xa, yi+1, zi), Block.get(35, 2));
+                level.setBlock(new Vector3(xa, yi+2, zi), Block.get(35, 1));
+                break;
+        }
+    }
+    public void setStartArena_C2048() {
+
+        int x = xi;
+        int z = zi;
+        int y = new Random().nextInt(ya - yi) + yi;
+
+        if (zi - za != 0) {
+            z = new Random().nextInt(za - zi) + zi;
+        } else if (xi - xa != 0) {
+            x = new Random().nextInt(xa - xi) + xi;
+        }
+
+        level.setBlock(new Vector3(x, y, z), Block.get(35, 0));
+        c2048.check = c2048.check + 1;
+    }
+
+
     public void setStartArena_AvoidWhiteBlock() {
-        String[] p1 = ((String) data.get("pos1")).split("\\+");
-        String[] p2 = ((String) data.get("pos2")).split("\\+");
-        int xi = (Math.min(Integer.parseInt(p1[0]), Integer.parseInt(p2[0])));
-        int xa = (Math.max(Integer.parseInt(p1[0]), Integer.parseInt(p2[0])));
-        int yi = (Math.min(Integer.parseInt(p1[1]), Integer.parseInt(p2[1])));
-        int ya = (Math.max(Integer.parseInt(p1[1]), Integer.parseInt(p2[1])));
-        int zi = (Math.min(Integer.parseInt(p1[2]), Integer.parseInt(p2[2])));
-        int za = (Math.max(Integer.parseInt(p1[2]), Integer.parseInt(p2[2])));
-        Level level = this.plugin.getServer().getLevelByName((String) data.get("room_world"));
         int width = (int) this.data.get("width");
 
         switch ((String) data.get("direction")) {
@@ -475,18 +531,13 @@ public class Room implements Listener {
         ArrayList<Integer> layout = new ArrayList<>(Arrays.asList(14, 1, 4, 5, 13, 9, 3, 11, 10, 8, 7, 6, 15, 0, 12));
         Collections.shuffle(layout);
 
-        String direction = (String) this.data.get("direction");
-        String[] p1 = ((String) this.data.get("pos1")).split("\\+");
-        String[] p2 = ((String) this.data.get("pos2")).split("\\+");
-        Level level = this.plugin.getServer().getLevelByName((String) data.get("room_world"));
         int a = 0;
         switch (direction) {
             case "x+": {
-                int z = Integer.parseInt(p1[2]);
-                for (int y = Integer.parseInt(p1[1]); y >= Integer.parseInt(p2[1]); y--) {
-                    for (int x = Integer.parseInt(p1[0]); x <= Integer.parseInt(p2[0]); x++) {
+                for (int y = ya; y >= yi; y--) {
+                    for (int x = xi; x <= xa; x++) {
                         if (a == 15) break;
-                        Vector3 v3 = new Vector3(x, y, z);
+                        Vector3 v3 = new Vector3(x, y, zi);
                         int mate = layout.get(a);
                         level.setBlock(v3, Block.get(35, mate));
                         a = a + 1;
@@ -495,11 +546,10 @@ public class Room implements Listener {
                 break;
             }
             case "x-": {
-                int z = Integer.parseInt(p1[2]);
-                for (int y = Integer.parseInt(p1[1]); y >= Integer.parseInt(p2[1]); y--) {
-                    for (int x = Integer.parseInt(p1[0]); x >= Integer.parseInt(p2[0]); x--) {
+                for (int y = ya; y >= yi; y--) {
+                    for (int x = xa; x >= xi; x--) {
                         if (a == 15) break;
-                        Vector3 v3 = new Vector3(x, y, z);
+                        Vector3 v3 = new Vector3(x, y, zi);
                         int mate = layout.get(a);
                         level.setBlock(v3, Block.get(35, mate));
                         a = a + 1;
@@ -508,11 +558,10 @@ public class Room implements Listener {
                 break;
             }
             case "z+": {
-                int x = Integer.parseInt(p1[0]);
-                for (int y = Integer.parseInt(p1[1]); y >= Integer.parseInt(p2[1]); y--) {
-                    for (int z = Integer.parseInt(p1[2]); z <= Integer.parseInt(p2[2]); z++) {
+                for (int y = ya; y >= yi; y--) {
+                    for (int z = zi; z <= za; z++) {
                         if (a == 15) break;
-                        Vector3 v3 = new Vector3(x, y, z);
+                        Vector3 v3 = new Vector3(xi, y, z);
                         int mate = layout.get(a);
                         level.setBlock(v3, Block.get(35, mate));
                         a = a + 1;
@@ -522,11 +571,10 @@ public class Room implements Listener {
                 break;
             }
             case "z-": {
-                int x = Integer.parseInt(p1[0]);
-                for (int y = Integer.parseInt(p1[1]); y >= Integer.parseInt(p2[1]); y--) {
-                    for (int z = Integer.parseInt(p1[2]); z >= Integer.parseInt(p2[2]); z--) {
+                for (int y = ya; y >= yi; y--) {
+                    for (int z = za; z >= zi; z--) {
                         if (a == 15) break;
-                        Vector3 v3 = new Vector3(x, y, z);
+                        Vector3 v3 = new Vector3(xi, y, z);
                         int mate = layout.get(a);
                         level.setBlock(v3, Block.get(35, mate));
                         a = a + 1;
@@ -541,18 +589,13 @@ public class Room implements Listener {
         ArrayList<Integer> layout = new ArrayList<>(Arrays.asList(14, 1, 4, 5, 13, 9, 3, 11));
         Collections.shuffle(layout);
 
-        String direction = (String) this.data.get("direction");
-        String[] p1 = ((String) this.data.get("pos1")).split("\\+");
-        String[] p2 = ((String) this.data.get("pos2")).split("\\+");
-        Level level = this.plugin.getServer().getLevelByName((String) data.get("room_world"));
         int a = 0;
         switch (direction) {
             case "x+": {
-                int z = Integer.parseInt(p1[2]);
-                for (int y = Integer.parseInt(p1[1]); y >= Integer.parseInt(p2[1]); y--) {
-                    for (int x = Integer.parseInt(p1[0]); x <= Integer.parseInt(p2[0]); x++) {
+                for (int y = ya; y >= yi; y--) {
+                    for (int x = xi; x <= xa; x++) {
                         if (a == 8) break;
-                        Vector3 v3 = new Vector3(x, y, z);
+                        Vector3 v3 = new Vector3(x, y, zi);
                         int mate = layout.get(a);
                         level.setBlock(v3, Block.get(35, mate));
                         a = a + 1;
@@ -561,11 +604,10 @@ public class Room implements Listener {
                 break;
             }
             case "x-": {
-                int z = Integer.parseInt(p1[2]);
-                for (int y = Integer.parseInt(p1[1]); y >= Integer.parseInt(p2[1]); y--) {
-                    for (int x = Integer.parseInt(p1[0]); x >= Integer.parseInt(p2[0]); x--) {
+                for (int y = ya; y >= yi; y--) {
+                    for (int x = xa; x >= xi; x--) {
                         if (a == 8) break;
-                        Vector3 v3 = new Vector3(x, y, z);
+                        Vector3 v3 = new Vector3(x, y, zi);
                         int mate = layout.get(a);
                         level.setBlock(v3, Block.get(35, mate));
                         a = a + 1;
@@ -574,11 +616,10 @@ public class Room implements Listener {
                 break;
             }
             case "z+": {
-                int x = Integer.parseInt(p1[0]);
-                for (int y = Integer.parseInt(p1[1]); y >= Integer.parseInt(p2[1]); y--) {
-                    for (int z = Integer.parseInt(p1[2]); z <= Integer.parseInt(p2[2]); z++) {
+                for (int y = ya; y >= yi; y--) {
+                    for (int z = zi; z <= za; z++) {
                         if (a == 8) break;
-                        Vector3 v3 = new Vector3(x, y, z);
+                        Vector3 v3 = new Vector3(xi, y, z);
                         int mate = layout.get(a);
                         level.setBlock(v3, Block.get(35, mate));
                         a = a + 1;
@@ -588,11 +629,10 @@ public class Room implements Listener {
                 break;
             }
             case "z-": {
-                int x = Integer.parseInt(p1[0]);
-                for (int y = Integer.parseInt(p1[1]); y >= Integer.parseInt(p2[1]); y--) {
-                    for (int z = Integer.parseInt(p1[2]); z >= Integer.parseInt(p2[2]); z--) {
+                for (int y = ya; y >= yi; y--) {
+                    for (int z = za; z >= zi; z--) {
                         if (a == 8) break;
-                        Vector3 v3 = new Vector3(x, y, z);
+                        Vector3 v3 = new Vector3(xi, y, z);
                         int mate = layout.get(a);
                         level.setBlock(v3, Block.get(35, mate));
                         a = a + 1;
@@ -604,16 +644,6 @@ public class Room implements Listener {
     }
 
     public void setStartArena_OneToOne() {
-        String direction = (String) data.get("direction");
-        String[] p1 = ((String) data.get("pos1")).split("\\+");
-        String[] p2 = ((String) data.get("pos2")).split("\\+");
-        int xi = (Math.min(Integer.parseInt(p1[0]), Integer.parseInt(p2[0])));
-        int xa = (Math.max(Integer.parseInt(p1[0]), Integer.parseInt(p2[0])));
-        int yi = (Math.min(Integer.parseInt(p1[1]), Integer.parseInt(p2[1])));
-        int ya = (Math.max(Integer.parseInt(p1[1]), Integer.parseInt(p2[1])));
-        int zi = (Math.min(Integer.parseInt(p1[2]), Integer.parseInt(p2[2])));
-        int za = (Math.max(Integer.parseInt(p1[2]), Integer.parseInt(p2[2])));
-        Level level = this.plugin.getServer().getLevelByName((String) data.get("room_world"));
         switch (direction) {
             case "x+":
             case "x-":
@@ -621,7 +651,7 @@ public class Room implements Listener {
                     for (int y = yi; y <= ya; y++) {
                         int num = new Random().nextInt(16);
                         Block block = Block.get(35, num);
-                        level.setBlock(new Vector3(x, y, Integer.parseInt(p1[2])), block);
+                        level.setBlock(new Vector3(x, y, zi), block);
                     }
                 }
                 break;
@@ -631,7 +661,7 @@ public class Room implements Listener {
                     for (int y = yi; y <= ya; y++) {
                         int num = new Random().nextInt(16);
                         Block block = Block.get(35, num);
-                        level.setBlock(new Vector3(Integer.parseInt(p1[0]), y, z), block);
+                        level.setBlock(new Vector3(xi, y, z), block);
                     }
                 }
                 break;
@@ -645,19 +675,12 @@ public class Room implements Listener {
     }
 
     public void setStartArena_Sudoku() {
-        String direction = (String) data.get("direction");
-        String[] p1 = ((String) data.get("pos1")).split("\\+");
-        String[] p2 = ((String) data.get("pos2")).split("\\+");
-        int xi = (Math.min(Integer.parseInt(p1[0]), Integer.parseInt(p2[0]))) + 1;
-        int xa = (Math.max(Integer.parseInt(p1[0]), Integer.parseInt(p2[0]))) - 1;
-        int yi = (Math.min(Integer.parseInt(p1[1]), Integer.parseInt(p2[1]))) + 1;
-        int ya = (Math.max(Integer.parseInt(p1[1]), Integer.parseInt(p2[1]))) - 1;
-        int zi = (Math.min(Integer.parseInt(p1[2]), Integer.parseInt(p2[2]))) + 1;
-        int za = (Math.max(Integer.parseInt(p1[2]), Integer.parseInt(p2[2]))) - 1;
-        Level level = this.plugin.getServer().getLevelByName((String) data.get("room_world"));
         ShuDuBuilder builder = new ShuDuBuilder();
         int[][] key = builder.getKey();
         sudoku.value = builder.getValue();
+        for (String k : sudoku.value.keySet()) {
+            sudoku.check.put(k, false);
+        }
         int a = 0, b = 0, h = 0;
         switch (direction) {
             case "x+":
@@ -749,17 +772,6 @@ public class Room implements Listener {
     }
 
     public void setStartArena_RemoveAll() {
-        String direction = (String) data.get("direction");
-        String[] p1 = ((String) data.get("pos1")).split("\\+");
-        String[] p2 = ((String) data.get("pos2")).split("\\+");
-        int xi = (Math.min(Integer.parseInt(p1[0]), Integer.parseInt(p2[0])));
-        int xa = (Math.max(Integer.parseInt(p1[0]), Integer.parseInt(p2[0])));
-        int yi = (Math.min(Integer.parseInt(p1[1]), Integer.parseInt(p2[1])));
-        int ya = (Math.max(Integer.parseInt(p1[1]), Integer.parseInt(p2[1])));
-        int zi = (Math.min(Integer.parseInt(p1[2]), Integer.parseInt(p2[2])));
-        int za = (Math.max(Integer.parseInt(p1[2]), Integer.parseInt(p2[2])));
-        Level level = this.plugin.getServer().getLevelByName((String) data.get("room_world"));
-
         switch (direction) {
             case "x+":
             case "x-":
@@ -767,7 +779,7 @@ public class Room implements Listener {
                     for (int y = yi; y <= ya; y++) {
                         int num = new Random().nextInt(5) + 4;
                         Block block = Block.get(159, num);
-                        level.setBlock(new Vector3(x, y, Integer.parseInt(p1[2])), block);
+                        level.setBlock(new Vector3(x, y, zi), block);
                     }
                 }
                 break;
@@ -777,7 +789,7 @@ public class Room implements Listener {
                     for (int y = yi; y <= ya; y++) {
                         int num = new Random().nextInt(5) + 4;
                         Block block = Block.get(159, num);
-                        level.setBlock(new Vector3(Integer.parseInt(p1[0]), y, z), block);
+                        level.setBlock(new Vector3(xi, y, z), block);
                     }
                 }
                 break;
@@ -785,18 +797,6 @@ public class Room implements Listener {
     }
 
     public void setStartArena_LightsOut() {
-
-        String direction = (String) data.get("direction");
-        String[] p1 = ((String) data.get("pos1")).split("\\+");
-        String[] p2 = ((String) data.get("pos2")).split("\\+");
-        int xi = (Math.min(Integer.parseInt(p1[0]), Integer.parseInt(p2[0])));
-        int xa = (Math.max(Integer.parseInt(p1[0]), Integer.parseInt(p2[0])));
-        int yi = (Math.min(Integer.parseInt(p1[1]), Integer.parseInt(p2[1])));
-        int ya = (Math.max(Integer.parseInt(p1[1]), Integer.parseInt(p2[1])));
-        int zi = (Math.min(Integer.parseInt(p1[2]), Integer.parseInt(p2[2])));
-        int za = (Math.max(Integer.parseInt(p1[2]), Integer.parseInt(p2[2])));
-        Level level = this.plugin.getServer().getLevelByName((String) data.get("room_world"));
-
         switch (direction) {
             case "x+":
             case "x-":
@@ -808,7 +808,7 @@ public class Room implements Listener {
                             this.rank = rank + 1;
                         }
                         Block block = Block.get(35, mate);
-                        level.setBlock(new Vector3(x, y, Integer.parseInt(p1[2])), block);
+                        level.setBlock(new Vector3(x, y, zi), block);
                     }
                 }
                 break;
@@ -822,12 +822,11 @@ public class Room implements Listener {
                             this.rank = rank + 1;
                         }
                         Block block = Block.get(35, mate);
-                        level.setBlock(new Vector3(Integer.parseInt(p1[0]), y, z), block);
+                        level.setBlock(new Vector3(xi, y, z), block);
                     }
                 }
                 break;
         }
-
     }
 
     public void startGame() {
@@ -836,15 +835,20 @@ public class Room implements Listener {
         saveBag();
         addItem();
         setStartArena();
+
+        gamePlayer.setAllowFlight(true);
     }
 
     public void stopGame() {
         this.game = 0;
         if (gamePlayer != null) {
-            loadBag();
+            if (!playerBag.isEmpty()) loadBag();
             gamePlayer.sendMessage(">>>   游戏结束");
+            gamePlayer.setAllowFlight(false);
         }
+
         plugin.changeSign(id);
+
         this.gamePlayer = null;
         this.finish = false;
         this.rank = 0;
@@ -875,22 +879,32 @@ public class Room implements Listener {
         }
     }
 
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onHit(EntityDamageEvent event) {
+        Entity en = event.getEntity();
+        if (en instanceof Player) {
+            if (this.isInGame((Player) en)) {
+                event.setCancelled(true);
+            }
+        }
+    }
+
     /**
      * 玩家操作类事件
      **/
     @EventHandler
     public void onBlockBreak(BlockBreakEvent event) {
         if (this.isInGame(event.getPlayer())) {
-            if (game_type.equals("Sudoku")) return;
-            event.setCancelled(true);
+            if (!game_type.equals("Sudoku")) event.setCancelled(true);
+            if (game != 1) event.setCancelled(true);
         }
     }
 
     @EventHandler
     public void onBlockPlace(BlockPlaceEvent event) {
         if (this.isInGame(event.getPlayer())) {
-            if (game_type.equals("Sudoku")) return;
-            event.setCancelled(true);
+            if (!game_type.equals("Sudoku")) event.setCancelled(true);
+            if (game != 1) event.setCancelled(true);
         }
     }
 

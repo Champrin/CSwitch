@@ -45,18 +45,17 @@ public class BlockPlay_3 extends Game implements Listener {
 
     public void updateBlock(Block block) {
         if (block.getId() == 20) return;
-        String direction = (String) this.plugin.data.get("direction");
         int x = (int) Math.round(Math.floor(block.x));
         int y = (int) Math.round(Math.floor(block.y));
         int z = (int) Math.round(Math.floor(block.z));
 
         if (checkBlock(block, new Vector3(x, y + 1, z))) {
             if (checkBlock(block, new Vector3(x, y - 1, z))) {
-                if (direction.equals("x+") || direction.equals("x-")) {
+                if (plugin.direction.equals("x+") || plugin.direction.equals("x-")) {
                     if (checkBlock(block, new Vector3(x + 1, y, z))) {
                         checkBlock(block, new Vector3(x - 1, y, z));
                     }
-                } else if (direction.equals("z+") || direction.equals("z-")) {
+                } else if (plugin.direction.equals("z+") || plugin.direction.equals("z-")) {
                     if (checkBlock(block, new Vector3(x, y, z + 1))) {
                         checkBlock(block, new Vector3(x, y, z - 1));
                     }
@@ -81,15 +80,11 @@ public class BlockPlay_3 extends Game implements Listener {
     public ArrayList<Integer> check = new ArrayList<>();
 
     public void checkArea(Block block) {
-        String direction = (String) this.plugin.data.get("direction");
-        String[] p1 = ((String) this.plugin.data.get("pos1")).split("\\+");
-        String[] p2 = ((String) this.plugin.data.get("pos2")).split("\\+");
-        switch (direction) {
+        switch (plugin.direction) {
             case "x+": {
-                int z = Integer.parseInt(p1[2]);
-                for (int y = Integer.parseInt(p1[1]); y >= Integer.parseInt(p2[1]); y--) {
-                    for (int x = Integer.parseInt(p1[0]); x <= Integer.parseInt(p2[0]); x++) {
-                        Vector3 v3 = new Vector3(x, y, z);
+                for (int y = plugin.ya; y >= plugin.yi; y--) {
+                    for (int x = plugin.xi; x <= plugin.xa; x++) {
+                        Vector3 v3 = new Vector3(x, y, plugin.zi);
                         int id = block.getLevel().getBlock(v3).getDamage();
                         check.add(id);
                     }
@@ -97,10 +92,9 @@ public class BlockPlay_3 extends Game implements Listener {
                 break;
             }
             case "x-": {
-                int z = Integer.parseInt(p1[2]);
-                for (int y = Integer.parseInt(p1[1]); y >= Integer.parseInt(p2[1]); y--) {
-                    for (int x = Integer.parseInt(p1[0]); x >= Integer.parseInt(p2[0]); x--) {
-                        Vector3 v3 = new Vector3(x, y, z);
+                for (int y = plugin.ya; y >= plugin.yi; y--) {
+                    for (int x = plugin.xa; x >= plugin.xi; x--) {
+                        Vector3 v3 = new Vector3(x, y, plugin.zi);
                         int id = block.getLevel().getBlock(v3).getDamage();
                         check.add(id);
                     }
@@ -108,10 +102,9 @@ public class BlockPlay_3 extends Game implements Listener {
                 break;
             }
             case "z+": {
-                int x = Integer.parseInt(p1[0]);
-                for (int y = Integer.parseInt(p1[1]); y >= Integer.parseInt(p2[1]); y--) {
-                    for (int z = Integer.parseInt(p1[2]); z <= Integer.parseInt(p2[2]); z++) {
-                        Vector3 v3 = new Vector3(x, y, z);
+                for (int y = plugin.ya; y >= plugin.yi; y--) {
+                    for (int z = plugin.zi; z <= plugin.za; z++) {
+                        Vector3 v3 = new Vector3(plugin.xi, y, z);
                         int id = block.getLevel().getBlock(v3).getDamage();
                         check.add(id);
                     }
@@ -119,10 +112,9 @@ public class BlockPlay_3 extends Game implements Listener {
                 break;
             }
             case "z-": {
-                int x = Integer.parseInt(p1[0]);
-                for (int y = Integer.parseInt(p1[1]); y >= Integer.parseInt(p2[1]); y--) {
-                    for (int z = Integer.parseInt(p1[2]); z >= Integer.parseInt(p2[2]); z--) {
-                        Vector3 v3 = new Vector3(x, y, z);
+                for (int y = plugin.ya; y >= plugin.yi; y--) {
+                    for (int z = plugin.za; z >= plugin.zi; z--) {
+                        Vector3 v3 = new Vector3(plugin.xi, y, z);
                         int id = block.getLevel().getBlock(v3).getDamage();
                         check.add(id);
                     }

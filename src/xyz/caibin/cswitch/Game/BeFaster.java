@@ -31,7 +31,7 @@ public class BeFaster extends Game {
                 if (this.plugin.isInArena(pos)) {
                     event.setCancelled(true);
                     this.plugin.rank = plugin.rank +1;
-                    block.level.setBlock(block, Block.get(20, 0));
+                    block.level.setBlock(block, Block.get(35, 0));
                 }
             }
         }

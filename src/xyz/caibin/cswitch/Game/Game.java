@@ -1,9 +1,8 @@
 package xyz.caibin.cswitch.Game;
 
-import cn.nukkit.Player;
-import cn.nukkit.block.Block;
 import cn.nukkit.event.Listener;
 import cn.nukkit.event.player.PlayerInteractEvent;
+import cn.nukkit.level.Level;
 import xyz.caibin.cswitch.CSwitch;
 import xyz.caibin.cswitch.Room;
 

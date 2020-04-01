@@ -9,8 +9,7 @@ import cn.nukkit.level.Level;
 import cn.nukkit.math.Vector3;
 import xyz.caibin.cswitch.Room;
 
-public class RemoveAll extends Game implements Listener
-{
+public class RemoveAll extends Game implements Listener {
     public RemoveAll(Room plugin) {
         this.plugin = plugin;
         this.game_type = plugin.game_type;
@@ -51,17 +50,16 @@ public class RemoveAll extends Game implements Listener
         if (block.getId() != 159) return;
 
         Level level = block.getLevel();
-        String direction = (String) this.plugin.data.get("direction");
         int x = (int) Math.round(Math.floor(block.x));
         int y = (int) Math.round(Math.floor(block.y));
         int z = (int) Math.round(Math.floor(block.z));
         checkBlock(level, block, mate);
         checkBlock(level, new Vector3(x, y + 1, z), mate);
         checkBlock(level, new Vector3(x, y - 1, z), mate);
-        if (direction.equals("x+") || direction.equals("x-")) {
+        if (plugin.direction.equals("x+") || plugin.direction.equals("x-")) {
             checkBlock(level, new Vector3(x + 1, y, z), mate);
             checkBlock(level, new Vector3(x - 1, y, z), mate);
-        } else if (direction.equals("z+") || direction.equals("z-")) {
+        } else if (plugin.direction.equals("z+") || plugin.direction.equals("z-")) {
             checkBlock(level, new Vector3(x, y, z + 1), mate);
             checkBlock(level, new Vector3(x, y, z - 1), mate);
         }
@@ -72,9 +70,9 @@ public class RemoveAll extends Game implements Listener
     public void checkBlock(Level level, Vector3 v3, int mate) {
         Block block = level.getBlock(v3);
         if (block.getDamage() == mate) {
-            this.count=count+1;
+            this.count = count + 1;
             level.setBlock(block, Block.get(0, 0));
-            this.check=check+1;
+            this.check = check + 1;
             this.plugin.rank = this.plugin.rank + count;
             this.EliminateBlock(block, mate);
         }
@@ -92,32 +90,23 @@ public class RemoveAll extends Game implements Listener
 
     public void MoveBlock(Block block) {
         Level level = block.level;
-        String direction = (String) this.plugin.data.get("direction");
-        String[] p1 = ((String) this.plugin.data.get("pos1")).split("\\+");
-        String[] p2 = ((String) this.plugin.data.get("pos2")).split("\\+");
-        int xi = (Math.min(Integer.parseInt(p1[0]), Integer.parseInt(p2[0])));
-        int xa = (Math.max(Integer.parseInt(p1[0]), Integer.parseInt(p2[0])));
-        int yi = (Math.min(Integer.parseInt(p1[1]), Integer.parseInt(p2[1])));
-        int ya = (Math.max(Integer.parseInt(p1[1]), Integer.parseInt(p2[1])));
-        int zi = (Math.min(Integer.parseInt(p1[2]), Integer.parseInt(p2[2])));
-        int za = (Math.max(Integer.parseInt(p1[2]), Integer.parseInt(p2[2])));
-        switch (direction) {
+        switch (plugin.direction) {
             case "x+":
             case "x-":
-                for (int y = yi; y <= ya; y++) {
-                    for (int x = xi; x <= xa; x++) {
-                        if (level.getBlock(new Vector3(x, y, zi)).getId() != 0) {
-                            FallingBlock(level.getBlock(new Vector3(x, y, zi)));
+                for (int y = plugin.yi; y <= plugin.ya; y++) {
+                    for (int x = plugin.xi; x <= plugin.xa; x++) {
+                        if (level.getBlock(new Vector3(x, y, plugin.zi)).getId() != 0) {
+                            FallingBlock(level.getBlock(new Vector3(x, y, plugin.zi)));
                         }
                     }
                 }
                 break;
             case "z+":
             case "z-":
-                for (int y = yi; y <= ya; y++) {
-                    for (int z = zi; z <= za; z++) {
-                        if (level.getBlock(new Vector3(xi, y, z)).getId() != 0) {
-                            FallingBlock(level.getBlock(new Vector3(xi, y, z)));
+                for (int y = plugin.yi; y <= plugin.ya; y++) {
+                    for (int z = plugin.zi; z <= plugin.za; z++) {
+                        if (level.getBlock(new Vector3(plugin.xi, y, z)).getId() != 0) {
+                            FallingBlock(level.getBlock(new Vector3(plugin.xi, y, z)));
                         }
 
                     }
@@ -127,7 +116,7 @@ public class RemoveAll extends Game implements Listener
     }
 
     public void checkFinish() {
-        if (check>=area) {
+        if (check >= area) {
             this.plugin.finish = true;
             this.count = 0;
             this.check = 0;

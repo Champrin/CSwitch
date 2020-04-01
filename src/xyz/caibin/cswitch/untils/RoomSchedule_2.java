@@ -36,18 +36,20 @@ public class RoomSchedule_2 extends Task {
         }
         if (this.arena.game == 1) {
             this.spendTime = spendTime - 1;
-            arena.gamePlayer.sendPopup(game_type + ">> §a§lRemaining time:§c" + spendTime + "s  §eYour point:§6" + this.arena.rank);
+            if (this.arena.gamePlayer == null) {
+                this.arena.stopGame();
+                this.spendTime = (int) arena.data.get("game_time");
+            }
             if (this.spendTime <= 0 && this.arena.gamePlayer != null) {
                 arena.gamePlayer.sendMessage("§f=======================");
                 arena.gamePlayer.sendMessage(">>  §f你的得分: §6§l" + this.arena.rank);
                 arena.gamePlayer.sendMessage("§f=======================");
-                arena.plugin.checkRank(game_type, spendTime, arena.gamePlayer.getName());
+                arena.plugin.checkRank(game_type, arena.rank, arena.gamePlayer.getName());
                 this.arena.stopGame();
                 this.spendTime = (int) arena.data.get("game_time");
             }
-            if (this.arena.gamePlayer == null) {
-                this.arena.stopGame();
-                this.spendTime = (int) arena.data.get("game_time");
+            if (this.arena.gamePlayer != null) {
+                arena.gamePlayer.sendPopup(game_type + ">> §a§lRemaining time:§c" + spendTime + "s  §eYour point:§6" + this.arena.rank);
             }
         }
     }

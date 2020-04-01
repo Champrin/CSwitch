@@ -43,7 +43,6 @@ public class LightsOut extends Game  implements Listener {
      **/
     public void updateBlock(Block block) {
         if (block.getId() != 35) return;
-        String direction = (String) this.plugin.data.get("direction");
         int x = (int) Math.round(Math.floor(block.x));
         int y = (int) Math.round(Math.floor(block.y));
         int z = (int) Math.round(Math.floor(block.z));
@@ -88,7 +87,7 @@ public class LightsOut extends Game  implements Listener {
             }
         }
 
-        if (direction.equals("x+") || direction.equals("x-")) {
+        if (plugin.direction.equals("x+") || plugin.direction.equals("x-")) {
 
             b = level.getBlock(new Vector3(x + 1, y, z));
             if (b.getId() == 35) {

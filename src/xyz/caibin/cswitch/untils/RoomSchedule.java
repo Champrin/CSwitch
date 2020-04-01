@@ -36,8 +36,10 @@ public class RoomSchedule extends Task {
             }
         }
         if (this.arena.game == 1) {
-            this.spendTime=spendTime+1;
-            arena.gamePlayer.sendPopup(game_type + ">> §a§lElapsed time:§c" + spendTime +"s  §eYour point:§6"+this.arena.rank);
+            if (this.arena.gamePlayer == null ) {
+                this.arena.stopGame();
+                this.spendTime = 0;
+            }
             if (this.arena.finish && this.arena.gamePlayer != null) {
                 arena.gamePlayer.sendMessage("§f=======================");
                 arena.gamePlayer.sendMessage(">>  §a完成游戏所用时间: §6§l"+spendTime);
@@ -47,9 +49,9 @@ public class RoomSchedule extends Task {
                 this.arena.stopGame();
                 this.spendTime = 0;
             }
-            if (this.arena.gamePlayer == null ) {
-                this.arena.stopGame();
-                this.spendTime = 0;
+            this.spendTime=spendTime+1;
+            if (this.arena.gamePlayer != null){
+                arena.gamePlayer.sendPopup(game_type + ">> §a§lElapsed time:§c" + spendTime +"s  §eYour point:§6"+this.arena.rank);
             }
         }
     }
