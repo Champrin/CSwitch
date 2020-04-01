@@ -28,18 +28,20 @@
    
 ## Game 游戏介绍
 ### Game Type 游戏类型
-| Number 序号 | GameName游戏名 |
-| 1 | LightsOut(关灯) |
-| 2 | OneToOne(一一对应) |
-| 3 | Jigsaw(拼图) |
-| 4 | RemoveAll(方块消消乐) |
-| 5 | BlockPlay_4(方块华容道4*4) |
-| 6 | BlockPlay_3(方块华容道3*3) |
-| 7 | CrazyClick(疯狂点击) |
-| 8 | AvoidWhiteBlock(别踩白块) |
-| 9 | Sudoku(数独) |
-| 10 | BeFaster(快速反应) |
-| 11 | HanoiTower(汉诺塔游戏) |
+
+ Number 序号 | GameName游戏名 
+------------- | -------------
+ 1 | LightsOut(关灯) 
+ 2 | OneToOne(一一对应) 
+ 3 | Jigsaw(拼图) 
+ 4 | RemoveAll(方块消消乐) 
+ 5 | BlockPlay_4(方块华容道4*4) 
+ 6 | BlockPlay_3(方块华容道3*3) 
+ 7 | CrazyClick(疯狂点击) 
+ 8 | AvoidWhiteBlock(别踩白块) 
+ 9 | Sudoku(数独) 
+ 10 | BeFaster(快速反应) 
+ 11 | HanoiTower(汉诺塔游戏) 
 
 方块华容道模板
 ![](https://attachment.mcbbs.net/forum/202003/26/195012k1v1gn442n6rez6e.jpg)
