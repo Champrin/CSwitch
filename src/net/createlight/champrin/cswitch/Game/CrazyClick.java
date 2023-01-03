@@ -14,9 +14,9 @@ public class CrazyClick extends Game {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onTouch(PlayerInteractEvent event) {
-        if (this.room.finish) return;
-        if (this.game_type.equals("CrazyClick")) {
-            if (this.room.game != 1) return;
+        if (this.room.isFinished) return;
+        if (this.gameTypeName.equals("CrazyClick")) {
+            if (!this.room.isStarted) return;
             if (this.room.isInGame(event.getPlayer())) {
                 if (event.getBlock().getId() == 57) {
                     this.room.rank = room.rank + 1;
@@ -31,7 +31,7 @@ public class CrazyClick extends Game {
     }
 
     @Override
-    public void madeArena() {
-        finishBuild();
+    public void buildArena() {
+        buildOperation(true);
     }
 }

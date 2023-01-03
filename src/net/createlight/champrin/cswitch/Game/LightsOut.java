@@ -2,6 +2,7 @@ package net.createlight.champrin.cswitch.Game;
 
 import cn.nukkit.Player;
 import cn.nukkit.block.Block;
+import cn.nukkit.block.BlockID;
 import cn.nukkit.event.EventHandler;
 import cn.nukkit.event.Listener;
 import cn.nukkit.event.player.PlayerInteractEvent;
@@ -19,164 +20,112 @@ public class LightsOut extends Game implements Listener {
 
     @EventHandler
     public void onTouch(PlayerInteractEvent event) {
-        if (this.room.finish) return;
-        if (this.game_type.equals("LightsOut")) {
-            if (this.room.game != 1) return;
-            Block block = event.getBlock();
-            Player player = event.getPlayer();
-            if (this.room.isInGame(player)) {
-                if (this.room.isInArena(block)) {
-                    event.setCancelled(true);
-                    updateBlock(block);
-                    checkFinish();
-                }
-            }
-        }
+        // 判断是否在房间进行游戏
+        if (!this.gameTypeName.equals("LightsOut")) return;
+        if (this.room.isFinished) return;
+        if (!this.room.isStarted) return;
+        Player player = event.getPlayer();
+        if (!this.room.isInGame(player)) return;
+        // 满足判断条件，终止事件带来的其他影响
+        event.setCancelled(true);
+        // 该类型游戏机制
+        Block block = event.getBlock();
+        if (block.getId() != BlockID.WOOL) return;
+        if (!this.room.isInArena(block)) return;
+
+        updateBlock(block);
+        checkFinish();
     }
 
     /**
-     * mate:5绿色羊毛 15黑色羊毛
-     **/
-    public void updateBlock(Block block) {
-        if (block.getId() != 35) return;
-        int x = (int) Math.round(Math.floor(block.x));
-        int y = (int) Math.round(Math.floor(block.y));
-        int z = (int) Math.round(Math.floor(block.z));
-        Level level = block.level;
-        Block b;
+     * 抽象数组中原本为1的变为0，原本为0的变为1
+     */
+    public void abstractProc() {
+        int tmpRow, tmpCol;
+        for (int[] moveDirection : abstractArrayMoveDirections) {
+            tmpRow = row + moveDirection[0];
+            tmpCol = col + moveDirection[1];
 
-        if (block.getDamage() == 5) {
-            if (this.room.rank - 1 > 0) {
-                this.room.rank = this.room.rank - 1;
-            }
-            level.setBlock(block, Block.get(35, 15));
-
-        } else if (block.getDamage() == 15) {
-            this.room.rank = this.room.rank + 1;
-            level.setBlock(block, Block.get(35, 5));
-        }
-
-        b = level.getBlock(new Vector3(x, y + 1, z));
-        if (b.getId() == 35) {
-
-            if (b.getDamage() == 15) {
-                this.room.rank = this.room.rank + 1;
-                level.setBlock(b, Block.get(35, 5));
-            } else if (b.getDamage() == 5) {
-                if (this.room.rank - 1 > 0) {
-                    this.room.rank = this.room.rank - 1;
-                }
-                level.setBlock(b, Block.get(35, 15));
-            }
-        }
-
-        b = level.getBlock(new Vector3(x, y - 1, z));
-        if (b.getId() == 35) {
-            if (b.getDamage() == 15) {
-                this.room.rank = this.room.rank + 1;
-                level.setBlock(b, Block.get(35, 5));
-            } else if (b.getDamage() == 5) {
-                if (this.room.rank - 1 > 0) {
-                    this.room.rank = this.room.rank - 1;
-                }
-                level.setBlock(b, Block.get(35, 15));
-            }
-        }
-
-        if (room.direction.equals("x+") || room.direction.equals("x-")) {
-
-            b = level.getBlock(new Vector3(x + 1, y, z));
-            if (b.getId() == 35) {
-                if (b.getDamage() == 15) {
-                    this.room.rank = this.room.rank + 1;
-                    level.setBlock(b, Block.get(35, 5));
-                } else if (b.getDamage() == 5) {
-                    if (this.room.rank - 1 >= 0) {
-                        this.room.rank = this.room.rank - 1;
-                    }
-                    level.setBlock(b, Block.get(35, 15));
-                }
-            }
-
-            b = level.getBlock(new Vector3(x - 1, y, z));
-            if (b.getId() == 35) {
-                if (b.getDamage() == 15) {
-                    this.room.rank = this.room.rank + 1;
-                    level.setBlock(b, Block.get(35, 5));
-                } else if (b.getDamage() == 5) {
-                    if (this.room.rank - 1 > 0) {
-                        this.room.rank = this.room.rank - 1;
-                    }
-                    level.setBlock(b, Block.get(35, 15));
-                }
-            }
-
-        } else {
-
-            b = level.getBlock(new Vector3(x, y, z + 1));
-            if (b.getId() == 35) {
-                if (b.getDamage() == 15) {
-                    this.room.rank = this.room.rank + 1;
-                    level.setBlock(b, Block.get(35, 5));
-                } else if (b.getDamage() == 5) {
-                    if (this.room.rank - 1 > 0) {
-                        this.room.rank = this.room.rank - 1;
-                    }
-                    level.setBlock(b, Block.get(35, 15));
-                }
-            }
-
-            b = level.getBlock(new Vector3(x, y, z - 1));
-            if (b.getId() == 35) {
-                if (b.getDamage() == 15) {
-                    this.room.rank = this.room.rank + 1;
-                    level.setBlock(b, Block.get(35, 5));
-                } else if (b.getDamage() == 5) {
-                    if (this.room.rank - 1 > 0) {
-                        this.room.rank = this.room.rank - 1;
-                    }
-                    level.setBlock(b, Block.get(35, 15));
-                }
+            if (abstractArray[tmpRow][tmpCol] == 1) {
+                abstractArray[tmpRow][tmpCol] = 0;
+                --this.room.rank;
+            } else {
+                abstractArray[tmpRow][tmpCol] = 1;
+                ++this.room.rank;
             }
         }
     }
+
+    public void updateBlock(Vector3 block) {
+        // 0.获取方块的真实世界坐标x,y,z
+        int x = (int) Math.round(Math.floor(block.x));
+        int y = (int) Math.round(Math.floor(block.y));
+        int z = (int) Math.round(Math.floor(block.z));
+
+        // 1.根据在真实世界的坐标点获取在抽象数组中的行号和列号
+        getRolCowByBlockPosition(x, y, z);
+
+        // 2.根据行号和列号更新抽象数组
+        abstractProc();
+
+        // 3.根据抽象数组更新真实世界的方块
+        int tmpX, tmpY, tmpZ;
+        int tmpRow, tmpCol;
+
+        int directionNum = blockMoveDirections.length;
+        for (int i = 0; i < directionNum; ++i) {
+            tmpX = x + blockMoveDirections[i][0];
+            tmpY = y + blockMoveDirections[i][1];
+            tmpZ = z + blockMoveDirections[i][2];
+
+            tmpRow = row + abstractArrayMoveDirections[i][0];
+            tmpCol = col + abstractArrayMoveDirections[i][1];
+
+            room.level.setBlock(new Vector3(tmpX, tmpY, tmpZ),
+                    abstractArray[tmpRow][tmpCol] == 1 ? greenWoolBlock : blackWoolBlock);
+        }
+    }
+
     @Override
     public void checkFinish() {
         if (this.room.rank >= area) {
-            this.room.finish=true;
+            this.room.isFinished = true;
         }
-    }@Override
-    public void madeArena() {
+    }
+
+    //TODO 写一个数据生成器 使得必有解
+    @Override
+    public void buildArena() {
         switch (room.direction) {
             case "x+":
             case "x-":
-                for (int x = room.xi; x <= room.xa; x++) {
-                    for (int y = room.yi; y <= room.ya; y++) {
+                for (int x = room.xMin; x <= room.xMax; x++) {
+                    for (int y = room.yMin; y <= room.yMax; y++) {
                         int num = new Random().nextInt(2);
                         int mate = (num == 1 ? 5 : 15);
                         if (mate == 5) {
-                            this.room.rank = room.rank + 1;
+                            ++this.room.rank;
                         }
                         Block block = Block.get(35, mate);
-                        room.level.setBlock(new Vector3(x, y, room.zi), block);
+                        room.level.setBlock(new Vector3(x, y, room.zMin), block);
                     }
                 }
                 break;
             case "z+":
             case "z-":
-                for (int z = room.zi; z <= room.za; z++) {
-                    for (int y = room.yi; y <= room.ya; y++) {
+                for (int z = room.zMin; z <= room.zMax; z++) {
+                    for (int y = room.yMin; y <= room.yMax; y++) {
                         int num = new Random().nextInt(2);
                         int mate = (num == 1 ? 5 : 15);
                         if (mate == 5) {
-                            this.room.rank = room.rank + 1;
+                            ++this.room.rank;
                         }
                         Block block = Block.get(35, mate);
-                        room.level.setBlock(new Vector3(room.xi, y, z), block);
+                        room.level.setBlock(new Vector3(room.xMin, y, z), block);
                     }
                 }
                 break;
         }
-        finishBuild();
+        buildOperation(true);
     }
 }

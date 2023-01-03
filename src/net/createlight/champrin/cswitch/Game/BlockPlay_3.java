@@ -20,14 +20,14 @@ public class BlockPlay_3 extends Game implements Listener {
 
     public BlockPlay_3(Room room) {
         super(room);
-        madeArena();
+        buildArena();
     }
 
     @EventHandler
     public void onTouch(PlayerInteractEvent event) {
-        if (this.room.finish) return;
-        if (this.game_type.equals("BlockPlay_3")) {
-            if (this.room.game != 1) return;
+        if (this.room.isFinished) return;
+        if (this.gameTypeName.equals("BlockPlay_3")) {
+            if (!this.room.isStarted) return;
             Block block = event.getBlock();
             Player player = event.getPlayer();
             if (this.room.isInGame(player)) {
@@ -78,9 +78,9 @@ public class BlockPlay_3 extends Game implements Listener {
     public void checkArea(Block block) {
         switch (room.direction) {
             case "x+": {
-                for (int y = room.ya; y >= room.yi; y--) {
-                    for (int x = room.xi; x <= room.xa; x++) {
-                        Vector3 v3 = new Vector3(x, y, room.zi);
+                for (int y = room.yMax; y >= room.yMin; y--) {
+                    for (int x = room.xMin; x <= room.xMax; x++) {
+                        Vector3 v3 = new Vector3(x, y, room.zMin);
                         int id = block.getLevel().getBlock(v3).getDamage();
                         check.add(id);
                     }
@@ -88,9 +88,9 @@ public class BlockPlay_3 extends Game implements Listener {
                 break;
             }
             case "x-": {
-                for (int y = room.ya; y >= room.yi; y--) {
-                    for (int x = room.xa; x >= room.xi; x--) {
-                        Vector3 v3 = new Vector3(x, y, room.zi);
+                for (int y = room.yMax; y >= room.yMin; y--) {
+                    for (int x = room.xMax; x >= room.xMin; x--) {
+                        Vector3 v3 = new Vector3(x, y, room.zMin);
                         int id = block.getLevel().getBlock(v3).getDamage();
                         check.add(id);
                     }
@@ -98,9 +98,9 @@ public class BlockPlay_3 extends Game implements Listener {
                 break;
             }
             case "z+": {
-                for (int y = room.ya; y >= room.yi; y--) {
-                    for (int z = room.zi; z <= room.za; z++) {
-                        Vector3 v3 = new Vector3(room.xi, y, z);
+                for (int y = room.yMax; y >= room.yMin; y--) {
+                    for (int z = room.zMin; z <= room.zMax; z++) {
+                        Vector3 v3 = new Vector3(room.xMin, y, z);
                         int id = block.getLevel().getBlock(v3).getDamage();
                         check.add(id);
                     }
@@ -108,9 +108,9 @@ public class BlockPlay_3 extends Game implements Listener {
                 break;
             }
             case "z-": {
-                for (int y = room.ya; y >= room.yi; y--) {
-                    for (int z = room.za; z >= room.zi; z--) {
-                        Vector3 v3 = new Vector3(room.xi, y, z);
+                for (int y = room.yMax; y >= room.yMin; y--) {
+                    for (int z = room.zMax; z >= room.zMin; z--) {
+                        Vector3 v3 = new Vector3(room.xMin, y, z);
                         int id = block.getLevel().getBlock(v3).getDamage();
                         check.add(id);
                     }
@@ -123,21 +123,22 @@ public class BlockPlay_3 extends Game implements Listener {
     @Override
     public void checkFinish() {
         if (this.checkLayout.equals(this.check)) {
-            this.room.finish = true;
+            this.room.isFinished = true;
         }
     }
+
     @Override
-    public void madeArena() {
+    public void buildArena() {
         ArrayList<Integer> layout = new ArrayList<>(Arrays.asList(14, 1, 4, 5, 13, 9, 3, 11));
         Collections.shuffle(layout);
 
         int a = 0;
         switch (room.direction) {
             case "x+": {
-                for (int y = room.ya; y >= room.yi; y--) {
-                    for (int x = room.xi; x <= room.xa; x++) {
+                for (int y = room.yMax; y >= room.yMin; y--) {
+                    for (int x = room.xMin; x <= room.xMax; x++) {
                         if (a == 8) break;
-                        Vector3 v3 = new Vector3(x, y, room.zi);
+                        Vector3 v3 = new Vector3(x, y, room.zMin);
                         int mate = layout.get(a);
                         room.level.setBlock(v3, Block.get(35, mate));
                         a = a + 1;
@@ -146,10 +147,10 @@ public class BlockPlay_3 extends Game implements Listener {
                 break;
             }
             case "x-": {
-                for (int y = room.ya; y >= room.yi; y--) {
-                    for (int x = room.xa; x >= room.xi; x--) {
+                for (int y = room.yMax; y >= room.yMin; y--) {
+                    for (int x = room.xMax; x >= room.xMin; x--) {
                         if (a == 8) break;
-                        Vector3 v3 = new Vector3(x, y, room.zi);
+                        Vector3 v3 = new Vector3(x, y, room.zMin);
                         int mate = layout.get(a);
                         room.level.setBlock(v3, Block.get(35, mate));
                         a = a + 1;
@@ -158,10 +159,10 @@ public class BlockPlay_3 extends Game implements Listener {
                 break;
             }
             case "z+": {
-                for (int y = room.ya; y >= room.yi; y--) {
-                    for (int z = room.zi; z <= room.za; z++) {
+                for (int y = room.yMax; y >= room.yMin; y--) {
+                    for (int z = room.zMin; z <= room.zMax; z++) {
                         if (a == 8) break;
-                        Vector3 v3 = new Vector3(room.xi, y, z);
+                        Vector3 v3 = new Vector3(room.xMin, y, z);
                         int mate = layout.get(a);
                         room.level.setBlock(v3, Block.get(35, mate));
                         a = a + 1;
@@ -171,10 +172,10 @@ public class BlockPlay_3 extends Game implements Listener {
                 break;
             }
             case "z-": {
-                for (int y = room.ya; y >= room.yi; y--) {
-                    for (int z = room.za; z >= room.zi; z--) {
+                for (int y = room.yMax; y >= room.yMin; y--) {
+                    for (int z = room.zMax; z >= room.zMin; z--) {
                         if (a == 8) break;
-                        Vector3 v3 = new Vector3(room.xi, y, z);
+                        Vector3 v3 = new Vector3(room.xMin, y, z);
                         int mate = layout.get(a);
                         room.level.setBlock(v3, Block.get(35, mate));
                         a = a + 1;
@@ -183,6 +184,6 @@ public class BlockPlay_3 extends Game implements Listener {
                 break;
             }
         }
-        finishBuild();
+        buildOperation(true);
     }
 }

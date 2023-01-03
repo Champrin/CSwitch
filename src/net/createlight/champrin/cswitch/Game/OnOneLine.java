@@ -20,8 +20,8 @@ public class OnOneLine extends Game implements Listener
 
     @EventHandler
     public void onTouch(PlayerInteractEvent event) {
-        if (this.room.finish) return;
-        if (this.game_type.equals("OnOneLine")) {
+        if (this.room.isFinished) return;
+        if (this.gameTypeName.equals("OnOneLine")) {
             Block block = event.getBlock();
             Level level = block.level;
             Player player = event.getPlayer();
@@ -39,7 +39,7 @@ public class OnOneLine extends Game implements Listener
                     }
                     int item = player.getInventory().getItemInHand().getId();
                     if (item == Item.DOOR_BLOCK){
-                        this.room.finish = true;
+                        this.room.isFinished = true;
                         this.count = 0;
                     }
                 }
@@ -226,8 +226,8 @@ public class OnOneLine extends Game implements Listener
     }*/
 
     @Override
-    public void madeArena() {
+    public void buildArena() {
         this.firstBlock=null;
-        finishBuild();
+        buildOperation(true);
     }
 }

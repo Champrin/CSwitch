@@ -10,7 +10,6 @@ import net.createlight.champrin.cswitch.untils.TimeBlockElement;
 import net.createlight.champrin.cswitch.Room;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Random;
 
@@ -53,9 +52,9 @@ public class CardMemory extends Game {
 
     @EventHandler
     public void onTouch(PlayerInteractEvent event) {
-        if (this.room.finish) return;
-        if (this.game_type.equals("CardMemory")) {
-            if (this.room.game != 1) return;
+        if (this.room.isFinished) return;
+        if (this.gameTypeName.equals("CardMemory")) {
+            if (!this.room.isStarted) return;
             Player player = event.getPlayer();
             if (this.room.isInGame(player)) {
                 Block block = event.getBlock();
@@ -63,15 +62,15 @@ public class CardMemory extends Game {
                 if (block.getId() != Block.WOOL) return;
                 if (firstClick == null) {
                     firstClick = block;
-                    firstL = Math.abs(room.ya - firstClick.getFloorY());
+                    firstL = Math.abs(room.yMax - firstClick.getFloorY());
                     switch (room.direction) {
                         case "x+":
                         case "x-":
-                            firstW = Math.abs(room.xa - firstClick.getFloorX());
+                            firstW = Math.abs(room.xMax - firstClick.getFloorX());
                             break;
                         case "z+":
                         case "z-":
-                            firstW = Math.abs(room.za - firstClick.getFloorZ());
+                            firstW = Math.abs(room.zMax - firstClick.getFloorZ());
                             break;
                         default:
                             throw new IllegalStateException("Unexpected value: " + room.direction);
@@ -79,16 +78,16 @@ public class CardMemory extends Game {
                     level.setBlock(firstClick, Block.get(Block.WOOL, value[firstL][firstW]));
                     this.room.plugin.getServer().getScheduler().scheduleRepeatingTask(new TimeBlockElement(3, firstClick), 20);
                 } else if (!checkSame(block)) {//阻止再次点击同一块,判断Y轴避免讨论direction
-                    int nextL = Math.abs(room.ya - block.getFloorY());
+                    int nextL = Math.abs(room.yMax - block.getFloorY());
                     int nextW;
                     switch (room.direction) {
                         case "x+":
                         case "x-":
-                            nextW = Math.abs(room.xa - block.getFloorX());
+                            nextW = Math.abs(room.xMax - block.getFloorX());
                             break;
                         case "z+":
                         case "z-":
-                            nextW = Math.abs(room.za - block.getFloorZ());
+                            nextW = Math.abs(room.zMax - block.getFloorZ());
                             break;
                         default:
                             throw new IllegalStateException("Unexpected value: " + room.direction);
@@ -132,32 +131,32 @@ public class CardMemory extends Game {
     @Override
     public void checkFinish() {
         if (room.rank >= area) {
-            this.room.finish = true;
+            this.room.isFinished = true;
             this.room.rank = 0;
         }
     }
 
     @Override
-    public void madeArena() {
+    public void buildArena() {
         shuffleLayout();
         switch (room.direction) {
             case "x+":
             case "x-":
-                for (int x = room.xi; x <= room.xa; x++) {
-                    for (int y = room.yi; y <= room.ya; y++) {
-                        room.level.setBlock(new Vector3(x, y, room.zi), Block.get(35, 0));
+                for (int x = room.xMin; x <= room.xMax; x++) {
+                    for (int y = room.yMin; y <= room.yMax; y++) {
+                        room.level.setBlock(new Vector3(x, y, room.zMin), Block.get(35, 0));
                     }
                 }
                 break;
             case "z+":
             case "z-":
-                for (int z = room.zi; z <= room.za; z++) {
-                    for (int y = room.yi; y <= room.ya; y++) {
-                        room.level.setBlock(new Vector3(room.xi, y, z), Block.get(35, 0));
+                for (int z = room.zMin; z <= room.zMax; z++) {
+                    for (int y = room.yMin; y <= room.yMax; y++) {
+                        room.level.setBlock(new Vector3(room.xMin, y, z), Block.get(35, 0));
                     }
                 }
                 break;
         }
-        finishBuild();
+        buildOperation(true);
     }
 }

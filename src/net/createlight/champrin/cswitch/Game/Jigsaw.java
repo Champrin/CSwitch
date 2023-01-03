@@ -24,7 +24,7 @@ public class Jigsaw extends Game implements Listener {
         shuffleLayout();
         setRightPlace();
         setBlock();
-        finishBuild();
+        buildOperation(true);
     }
 
     public void shuffleLayout() {
@@ -34,36 +34,36 @@ public class Jigsaw extends Game implements Listener {
     public void setRightPlace() {
         switch (room.direction) {
             case "x+": {
-                for (int y = room.ya; y >= room.yi; y--) {
-                    for (int x = room.xi; x <= room.xa; x++) {
-                        Vector3 v3 = new Vector3(x, y, room.zi);
+                for (int y = room.yMax; y >= room.yMin; y--) {
+                    for (int x = room.xMin; x <= room.xMax; x++) {
+                        Vector3 v3 = new Vector3(x, y, room.zMin);
                         Pos.add(v3);
                     }
                 }
                 break;
             }
             case "x-": {
-                for (int y = room.ya; y >= room.yi; y--) {
-                    for (int x = room.xa; x >= room.xi; x--) {
-                        Vector3 v3 = new Vector3(x, y, room.zi);
+                for (int y = room.yMax; y >= room.yMin; y--) {
+                    for (int x = room.xMax; x >= room.xMin; x--) {
+                        Vector3 v3 = new Vector3(x, y, room.zMin);
                         Pos.add(v3);
                     }
                 }
                 break;
             }
             case "z+": {
-                for (int y = room.ya; y >= room.yi; y--) {
-                    for (int z = room.zi; z <= room.za; z++) {
-                        Vector3 v3 = new Vector3(room.xi, y, z);
+                for (int y = room.yMax; y >= room.yMin; y--) {
+                    for (int z = room.zMin; z <= room.zMax; z++) {
+                        Vector3 v3 = new Vector3(room.xMin, y, z);
                         Pos.add(v3);
                     }
                 }
                 break;
             }
             case "z-": {
-                for (int y = room.ya; y >= room.yi; y--) {
-                    for (int z = room.za; z >= room.zi; z--) {
-                        Vector3 v3 = new Vector3(room.xi, y, z);
+                for (int y = room.yMax; y >= room.yMin; y--) {
+                    for (int z = room.zMax; z >= room.zMin; z--) {
+                        Vector3 v3 = new Vector3(room.xMin, y, z);
                         Pos.add(v3);
                     }
                 }
@@ -76,40 +76,40 @@ public class Jigsaw extends Game implements Listener {
         int a = 0;
         switch (room.direction) {
             case "x+": {
-                for (int y = room.ya + 6; y >= room.yi + 6; y--) {
-                    for (int x = room.xi; x <= room.xa; x++) {
+                for (int y = room.yMax + 6; y >= room.yMin + 6; y--) {
+                    for (int x = room.xMin; x <= room.xMax; x++) {
                         String[] I = layout.get(a).split("-");
-                        room.level.setBlock(new Vector3(x, y, room.zi), Block.get(Integer.parseInt(I[0]), Integer.parseInt(I[1])));
+                        room.level.setBlock(new Vector3(x, y, room.zMin), Block.get(Integer.parseInt(I[0]), Integer.parseInt(I[1])));
                         a = a + 1;
                     }
                 }
                 break;
             }
             case "x-": {
-                for (int y = room.ya + 6; y >= room.yi + 6; y--) {
-                    for (int x = room.xa; x >= room.xi; x--) {
+                for (int y = room.yMax + 6; y >= room.yMin + 6; y--) {
+                    for (int x = room.xMax; x >= room.xMin; x--) {
                         String[] I = layout.get(a).split("-");
-                        room.level.setBlock(new Vector3(x, y, room.zi), Block.get(Integer.parseInt(I[0]), Integer.parseInt(I[1])));
+                        room.level.setBlock(new Vector3(x, y, room.zMin), Block.get(Integer.parseInt(I[0]), Integer.parseInt(I[1])));
                         a = a + 1;
                     }
                 }
                 break;
             }
             case "z+": {
-                for (int y = room.ya + 6; y >= room.yi + 6; y--) {
-                    for (int z = room.zi; z <= room.za; z++) {
+                for (int y = room.yMax + 6; y >= room.yMin + 6; y--) {
+                    for (int z = room.zMin; z <= room.zMax; z++) {
                         String[] I = layout.get(a).split("-");
-                        room.level.setBlock(new Vector3(room.xi, y, z), Block.get(Integer.parseInt(I[0]), Integer.parseInt(I[1])));
+                        room.level.setBlock(new Vector3(room.xMin, y, z), Block.get(Integer.parseInt(I[0]), Integer.parseInt(I[1])));
                         a = a + 1;
                     }
                 }
                 break;
             }
             case "z-": {
-                for (int y = room.ya + 6; y >= room.yi + 6; y--) {
-                    for (int z = room.za; z >= room.zi; z--) {
+                for (int y = room.yMax + 6; y >= room.yMin + 6; y--) {
+                    for (int z = room.zMax; z >= room.zMin; z--) {
                         String[] I = layout.get(a).split("-");
-                        room.level.setBlock(new Vector3(room.xi, y, z), Block.get(Integer.parseInt(I[0]), Integer.parseInt(I[1])));
+                        room.level.setBlock(new Vector3(room.xMin, y, z), Block.get(Integer.parseInt(I[0]), Integer.parseInt(I[1])));
                         a = a + 1;
                     }
                 }
@@ -120,9 +120,9 @@ public class Jigsaw extends Game implements Listener {
 
     @EventHandler
     public void onTouch(PlayerInteractEvent event) {
-        if (this.room.finish) return;
-        if (this.game_type.equals("Jigsaw")) {
-            if (this.room.game != 1) return;
+        if (this.room.isFinished) return;
+        if (this.gameTypeName.equals("Jigsaw")) {
+            if (!this.room.isStarted) return;
             Player player = event.getPlayer();
             if (this.room.isInGame(player)) {
                 Block block = event.getBlock();
@@ -155,15 +155,15 @@ public class Jigsaw extends Game implements Listener {
 
     public void checkFinish() {
         if (this.room.rank >= 9) {
-            this.room.finish = true;
+            this.room.isFinished = true;
         }
     }
 
     @Override
-    public void madeArena() {
+    public void buildArena() {
         shuffleLayout();
         setRightPlace();
         setBlock();
-        finishBuild();
+        buildOperation(true);
     }
 }

@@ -19,8 +19,8 @@ public class RemoveAll extends Game implements Listener {
 
     @EventHandler
     public void onTouch(PlayerInteractEvent event) {
-        if (this.room.finish) return;
-        if (this.game_type.equals("RemoveAll")) {
+        if (this.room.isFinished) return;
+        if (this.gameTypeName.equals("RemoveAll")) {
             Block block = event.getBlock();
             Player player = event.getPlayer();
             if (this.room.isInGame(player)) {
@@ -89,20 +89,20 @@ public class RemoveAll extends Game implements Listener {
         switch (room.direction) {
             case "x+":
             case "x-":
-                for (int y = room.yi; y <= room.ya; y++) {
-                    for (int x = room.xi; x <= room.xa; x++) {
-                        if (level.getBlock(new Vector3(x, y, room.zi)).getId() != 0) {
-                            FallingBlock(level.getBlock(new Vector3(x, y, room.zi)));
+                for (int y = room.yMin; y <= room.yMax; y++) {
+                    for (int x = room.xMin; x <= room.xMax; x++) {
+                        if (level.getBlock(new Vector3(x, y, room.zMin)).getId() != 0) {
+                            FallingBlock(level.getBlock(new Vector3(x, y, room.zMin)));
                         }
                     }
                 }
                 break;
             case "z+":
             case "z-":
-                for (int y = room.yi; y <= room.ya; y++) {
-                    for (int z = room.zi; z <= room.za; z++) {
-                        if (level.getBlock(new Vector3(room.xi, y, z)).getId() != 0) {
-                            FallingBlock(level.getBlock(new Vector3(room.xi, y, z)));
+                for (int y = room.yMin; y <= room.yMax; y++) {
+                    for (int z = room.zMin; z <= room.zMax; z++) {
+                        if (level.getBlock(new Vector3(room.xMin, y, z)).getId() != 0) {
+                            FallingBlock(level.getBlock(new Vector3(room.xMin, y, z)));
                         }
 
                     }
@@ -113,7 +113,7 @@ public class RemoveAll extends Game implements Listener {
 
     public void checkFinish() {
         if (check >= area) {
-            this.room.finish = true;
+            this.room.isFinished = true;
             this.count = 0;
             this.check = 0;
         }
@@ -205,29 +205,29 @@ public class RemoveAll extends Game implements Listener {
         }
     }*/
    @Override
-   public void madeArena() {
+   public void buildArena() {
        switch (room.direction) {
            case "x+":
            case "x-":
-               for (int x = room.xi; x <= room.xa; x++) {
-                   for (int y = room.yi; y <= room.ya; y++) {
+               for (int x = room.xMin; x <= room.xMax; x++) {
+                   for (int y = room.yMin; y <= room.yMax; y++) {
                        int num = new Random().nextInt(5) + 4;
                        Block block = Block.get(159, num);
-                       room.level.setBlock(new Vector3(x, y, room.zi), block);
+                       room.level.setBlock(new Vector3(x, y, room.zMin), block);
                    }
                }
                break;
            case "z+":
            case "z-":
-               for (int z = room.zi; z <= room.za; z++) {
-                   for (int y = room.yi; y <= room.ya; y++) {
+               for (int z = room.zMin; z <= room.zMax; z++) {
+                   for (int y = room.yMin; y <= room.yMax; y++) {
                        int num = new Random().nextInt(5) + 4;
                        Block block = Block.get(159, num);
-                       room.level.setBlock(new Vector3(room.xi, y, z), block);
+                       room.level.setBlock(new Vector3(room.xMin, y, z), block);
                    }
                }
                break;
        }
-       finishBuild();
+       buildOperation(true);
    }
 }

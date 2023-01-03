@@ -17,6 +17,9 @@ public class C2048 extends Game {
     private HashMap<Integer, Integer> grade = new HashMap<>();
     private HashMap<Integer, Integer> nextGrade = new HashMap<>();
 
+    int row, col; //array的行数和列数
+    private int[][] array = new int[4][4];
+
     public C2048(Room room) {
         super(room);
         this.grade.put(0, 1);
@@ -41,441 +44,147 @@ public class C2048 extends Game {
         this.nextGrade.put(8, 11);
         this.nextGrade.put(9, 14);
         this.nextGrade.put(10, 5);
-        madeArena();
+        buildArena();
     }
 
     @EventHandler
     public void onTouch(PlayerInteractEvent event) {
-        if (this.room.finish) return;
-        if (this.game_type.equals("C2048")) {
-            Player player = event.getPlayer();
-            if (this.room.isInGame(player)) {
-                Item item = player.getInventory().getItemInHand();
-                event.setCancelled();
-                if (item.getId() != 35) return;
-                updateBlock(item.getDamage());
+        if (this.room.isFinished) return;
+        if (!this.gameTypeName.equals("C2048")) return;
+        Player player = event.getPlayer();
+        if (!this.room.isInGame(player)) return;
+        Item item = player.getInventory().getItemInHand();
+        event.setCancelled();
+        if (item.getId() != 35) return;
 
-                System.out.println("check " + this.check);
-                checkFinish();
-            }
+        // 获取行数/每列有多少元素： int rowLength = array.length;
+        // 获取列数/每行有多少元素： int colLength = array[0].length;
+        switch (item.getDamage()) {
+            case 0:// up上移
+                // 0.遍历每列
+                for (int i = 0; i < array[0].length; i++) {
+                    // 1.自上而下取出列元素
+                    int[] cols = new int[array.length];
+                    for (int j = 0; j < array.length; j++) {
+                        cols[j] = array[j][i];
+                    }
+                    // 2.元素合并
+                    cols = mergeNear(cols);
+                    // 3.将合并后的元素重新给二维数组赋值
+                    for (int k = 0; k < cols.length; k++) {
+                        array[k][i] = cols[k];
+                    }
+                }
+                break;
+            case 1:// down下移
+                // 0.遍历每列
+                for (int i = 0; i < array[0].length; i++) {
+                    // 1.自下而上取出列元素
+                    int[] cols = new int[array.length];
+                    for (int j = array.length - 1; j >= 0; j--) {
+                        cols[3 - j] = array[j][i];
+                    }
+                    // 2.元素合并
+                    cols = mergeNear(cols);
+                    // 3.将合并后的元素重新给二维数组赋值
+                    for (int k = 0; k < cols.length; k++) {
+                        array[3 - k][i] = cols[k];
+                    }
+                }
+                break;
+            case 2:// left左移
+                // 0.遍历每行
+                for (int i = 0; i < array.length; i++) {
+                    // 1.自左而右取出行元素
+                    int[] rows = new int[array[0].length];
+                    for (int j = 0; j < array[0].length; j++) {
+                        rows[j] = array[i][j];
+                    }
+                    // 2.元素合并
+                    rows = mergeNear(rows);
+                    // 3.将合并后的元素重新给二维数组赋值
+                    for (int k = 0; k < rows.length; k++) {
+                        array[i][k] = rows[k];
+                    }
+                }
+                break;
+            case 3:// right右移
+                // 0.遍历每行
+                for (int i = 0; i < array.length; i++) {
+                    // 1.自右而左取出行元素
+                    int[] rows = new int[array[0].length];
+                    for (int j = array[0].length - 1; j >= 0; j--) {
+                        rows[3 - j] = array[i][j];
+                    }
+                    // 2.元素合并
+                    rows = mergeNear(rows);
+                    // 3.将合并后的元素重新给二维数组赋值
+                    for (int k = 0; k < rows.length; k++) {
+                        array[i][3 - k] = rows[k];
+                    }
+                }
+                break;
         }
+        updateBlock();
+
+        checkFinish();
     }
 
-    public void updateBlock(int button) {
-        switch (button) {
-            case 0:
-                switch (room.direction) {
-                    case "x+":
-                        x1_up();
-                        break;
-                    case "z+":
-                        z1_up();
-                        break;
-                }
-                break;
-            case 1:
-                switch (room.direction) {
-                    case "x+":
-                        x1_down();
-                        break;
-                    case "z+":
-                        z1_down();
-                        break;
-                }
-                break;
-            case 2:
-                switch (room.direction) {
-                    case "x+":
-                        x1_left();
-                        break;
-                    case "z+":
-                        z1_left();
-                        break;
-                    case "x-":
-                        x2_left();
-                        break;
-                    case "z-":
-                        z2_left();
-                        break;
-                }
-                break;
-            case 3:
-                switch (room.direction) {
-                    case "x+":
-                        x1_right();
-                        break;
-                    case "z+":
-                        z1_right();
-                        break;
-                    case "x-":
-                        x2_right();
-                        break;
-                    case "z-":
-                        z2_right();
-                        break;
-                }
-                break;
-        }
+    // 算法分析：
+    // 0.   上移、下移操作的是列，左移、右移操作的是行
+    //      上移、下移需要取出各列元素，上移：自上而下取出各列元素，下移：自下而上取出各列元素
+    //      左移、右移需要取出各行元素，左移：自左而右取出各行元素，右移：自右向左取出各行元素
+    // 1.   将0元素移到行的最后
+    // 2.   合并相邻元素，相邻相同的元素值加到前一个元素中，后一个元素归零
+    //      合并过程中，还会产生0元素，需要再次将0元素移到列的最后。
+    // 3.   最后，将移动后的各列元素重新给4*4的二维数组赋值。
+
+    public void updateBlock() {
+
+
         randomBlock();
-
     }
 
-    private void x1_up() {
-        for (int y = room.ya - 1; y >= room.yi; y--) {
-            for (int x = room.xi; x <= room.xa; x++) {
-                Block b = room.level.getBlock(new Vector3(x, y, room.zi));
-                if (b.getId() != 20) {
-                    Block b1 = room.level.getBlock(new Vector3(x, y - 1, room.zi));
-                    int gb = grade.get(b.getDamage());
-                    int gb1 = grade.get(b1.getDamage());
-                    if (gb == gb1) {
-                        this.check = check - 1;
-                        int nextGrade = this.nextGrade.get(gb);
-                        room.level.setBlock(b1, Block.get(35, nextGrade));
-                        checkMaxNum(nextGrade);
-                        room.level.setBlock(b, Block.get(20, 0));
-                    } else if (b1.getId() == 20) {
-                        room.level.setBlock(b1, b);
-                        room.level.setBlock(b, Block.get(20, 0));
-                    }
-                    b1 = room.level.getBlock(new Vector3(x, y - 1, room.zi));
-                    clearEmptyX(b1, x, y - 2, room.zi);
-                }
+    /**
+     * 将0移到数组最后
+     *
+     * @param arr 1*4数组
+     * @return 移动后的数组
+     */
+    static int[] moveZero(int[] arr) {
+        int[] res = new int[arr.length];
+        int index = 0;
+        for (int i = 0; i < 4; ++i) {
+            if (arr[i] != 0) {
+                res[index++] = arr[i];
             }
         }
+        return res;
     }
 
-    private void z1_up() {
-
-        for (int y = room.ya - 1; y >= room.yi; y--) {
-            for (int z = room.zi; z <= room.zi; z++) {
-                Block b = room.level.getBlock(new Vector3(room.xi, y, z));
-                if (b.getId() != 20) {
-                    Block b1 = room.level.getBlock(new Vector3(room.xi, y - 1, z));
-                    int gb = grade.get(b.getDamage());
-                    int gb1 = grade.get(b1.getDamage());
-                    if (gb == gb1) {
-                        this.check = check - 1;
-                        int nextGrade = this.nextGrade.get(gb);
-                        room.level.setBlock(b1, Block.get(35, nextGrade));
-                        checkMaxNum(nextGrade);
-                        room.level.setBlock(b, Block.get(20, 0));
-                    } else if (b1.getId() == 20) {
-                        room.level.setBlock(b1, b);
-                        room.level.setBlock(b, Block.get(20, 0));
-                    }
-                    b1 = room.level.getBlock(new Vector3(room.xi, y - 1, z));
-                    clearEmptyZ(b1, room.xi, y - 2, z);
-                }
+    /**
+     * 合并相邻相同方块
+     *
+     * @param arr arr 1*4数组
+     * @return 合并后的数组
+     */
+    static int[] mergeNear(int[] arr) {
+        //合并之前，先将0移到数组最后
+        int[] arr1 = moveZero(arr);
+        //合并相邻相同方块，合并结果放在前一个方块，后一个方块置零
+        for (int i = 0; i < arr1.length - 1; i++) {
+            if (arr1[i] != 0 && arr1[i] == arr1[i + 1]) {
+                arr1[i] += arr1[i + 1];
+                arr1[i + 1] = 0;
             }
         }
+        //合并之后，将0移到数组最后，返回结果
+        return moveZero(arr1);
     }
 
-    private void x1_down() {
-        for (int y = room.yi + 1; y <= room.ya; y++) {
-            for (int x = room.xi; x <= room.xa; x++) {
-                Block b = room.level.getBlock(new Vector3(x, y, room.zi));
-                if (b.getId() != 20) {
-                    Block b1 = room.level.getBlock(new Vector3(x, y + 1, room.zi));
-                    int gb = grade.get(b.getDamage());
-                    int gb1 = grade.get(b1.getDamage());
-                    if (gb == gb1) {
-                        this.check = check - 1;
-                        int nextGrade = this.nextGrade.get(gb);
-                        room.level.setBlock(b1, Block.get(35, nextGrade));
-                        checkMaxNum(nextGrade);
-                        room.level.setBlock(b, Block.get(20, 0));
-                    } else if (b1.getId() == 20) {
-                        room.level.setBlock(b1, b);
-                        room.level.setBlock(b, Block.get(20, 0));
-                    }
-                    b1 = room.level.getBlock(new Vector3(x, y + 1, room.zi));
-                    clearEmptyX(b1, x, y + 2, room.zi);
-                }
-            }
-        }
-    }
-
-    private void z1_down() {
-        for (int y = room.yi + 1; y <= room.ya; y++) {
-            for (int z = room.zi; z <= room.zi; z++) {
-                Block b = room.level.getBlock(new Vector3(room.xi, y, z));
-                if (b.getId() != 20) {
-                    Block b1 = room.level.getBlock(new Vector3(room.xi, y + 1, z));
-                    int gb = grade.get(b.getDamage());
-                    int gb1 = grade.get(b1.getDamage());
-                    if (gb == gb1) {
-                        this.check = check - 1;
-                        int nextGrade = this.nextGrade.get(gb);
-                        room.level.setBlock(b1, Block.get(35, nextGrade));
-                        checkMaxNum(nextGrade);
-                        room.level.setBlock(b, Block.get(20, 0));
-                    } else if (b1.getId() == 20) {
-                        room.level.setBlock(b1, b);
-                        room.level.setBlock(b, Block.get(20, 0));
-                    }
-                    b1 = room.level.getBlock(new Vector3(room.xi, y + 1, z));
-                    clearEmptyZ(b1, room.xi, y + 2, z);
-                }
-            }
-        }
-    }
-
-
-    private void x1_left() {
-        for (int x = room.xi + 1; x <= room.xa; x++) {
-            for (int y = room.ya; y >= room.yi; y--) {
-                Block b = room.level.getBlock(new Vector3(x, y, room.zi));
-                if (b.getId() != 20) {
-                    Block b1 = room.level.getBlock(new Vector3(x - 1, y, room.zi));
-                    int gb = grade.get(b.getDamage());
-                    int gb1 = grade.get(b1.getDamage());
-                    if (gb == gb1) {
-                        this.check = check - 1;
-                        int nextGrade = this.nextGrade.get(gb);
-                        room.level.setBlock(b1, Block.get(35, nextGrade));
-                        checkMaxNum(nextGrade);
-                        room.level.setBlock(b, Block.get(20, 0));
-                    } else if (b1.getId() == 20) {
-                        room.level.setBlock(b1, b);
-                        room.level.setBlock(b, Block.get(20, 0));
-                    }
-                    b1 = room.level.getBlock(new Vector3(x - 1, y, room.zi));
-                    clearEmptyX(b1, x - 2, y, room.zi);
-                }
-            }
-        }
-    }
-
-    private void z1_left() {
-        for (int z = room.zi + 1; z <= room.zi; z++) {
-            for (int y = room.ya; y >= room.yi; y--) {
-                Block b = room.level.getBlock(new Vector3(room.xi, y, z));
-                if (b.getId() != 20) {
-                    Block b1 = room.level.getBlock(new Vector3(room.xi, y, z - 1));
-                    int gb = grade.get(b.getDamage());
-                    int gb1 = grade.get(b1.getDamage());
-                    if (gb == gb1) {
-                        this.check = check - 1;
-                        int nextGrade = this.nextGrade.get(gb);
-                        room.level.setBlock(b1, Block.get(35, nextGrade));
-                        checkMaxNum(nextGrade);
-                        room.level.setBlock(b, Block.get(20, 0));
-                    } else if (b1.getId() == 20) {
-                        room.level.setBlock(b1, b);
-                        room.level.setBlock(b, Block.get(20, 0));
-                    }
-                    b1 = room.level.getBlock(new Vector3(room.xi, y, z - 1));
-                    clearEmptyZ(b1, room.xi, y, z - 2);
-                }
-            }
-        }
-    }
-
-    private void x2_left() {
-        for (int x = room.xa - 1; x >= room.xa; x--) {
-            for (int y = room.ya; y >= room.yi; y--) {
-                Block b = room.level.getBlock(new Vector3(x, y, room.zi));
-                if (b.getId() != 20) {
-                    Block b1 = room.level.getBlock(new Vector3(x + 1, y, room.zi));
-                    int gb = grade.get(b.getDamage());
-                    int gb1 = grade.get(b1.getDamage());
-                    if (gb == gb1) {
-                        this.check = check - 1;
-                        int nextGrade = this.nextGrade.get(gb);
-                        room.level.setBlock(b1, Block.get(35, nextGrade));
-                        checkMaxNum(nextGrade);
-                        room.level.setBlock(b, Block.get(20, 0));
-                    } else if (b1.getId() == 20) {
-                        room.level.setBlock(b1, b);
-                        room.level.setBlock(b, Block.get(20, 0));
-                    }
-                    b1 = room.level.getBlock(new Vector3(x + 1, y, room.zi));
-                    clearEmptyX2(b1, x + 2, y, room.zi);
-                }
-            }
-        }
-    }
-
-    private void z2_left() {
-        for (int z = room.za - 1; z >= room.za; z--) {
-            for (int y = room.ya; y >= room.yi; y--) {
-                Block b = room.level.getBlock(new Vector3(room.xi, y, z));
-                if (b.getId() != 20) {
-                    Block b1 = room.level.getBlock(new Vector3(room.xi, y, z + 1));
-                    int gb = grade.get(b.getDamage());
-                    int gb1 = grade.get(b1.getDamage());
-                    if (gb == gb1) {
-                        this.check = check - 1;
-                        int nextGrade = this.nextGrade.get(gb);
-                        room.level.setBlock(b1, Block.get(35, nextGrade));
-                        checkMaxNum(nextGrade);
-                        room.level.setBlock(b, Block.get(20, 0));
-                    } else if (b1.getId() == 20) {
-                        room.level.setBlock(b1, b);
-                        room.level.setBlock(b, Block.get(20, 0));
-                    }
-                    b1 = room.level.getBlock(new Vector3(room.xi, y, z + 1));
-                    clearEmptyZ2(b1, room.xi, y, z + 2);
-                }
-            }
-        }
-    }
-
-    //1-->+ 2-->-
-    private void x1_right() {
-        for (int x = room.xa - 1; x >= room.xi; x--) {
-            for (int y = room.ya; y >= room.yi; y--) {
-                Block b = room.level.getBlock(new Vector3(x, y, room.zi));
-                if (b.getId() != 20) {
-                    Block b1 = room.level.getBlock(new Vector3(x + 1, y, room.zi));
-                    int gb = grade.get(b.getDamage());
-                    int gb1 = grade.get(b1.getDamage());
-                    if (gb == gb1) {
-                        this.check = check - 1;
-                        int nextGrade = this.nextGrade.get(gb);
-                        room.level.setBlock(b1, Block.get(35, nextGrade));
-                        checkMaxNum(nextGrade);
-                        room.level.setBlock(b, Block.get(20, 0));
-                    } else if (b1.getId() == 20) {
-                        room.level.setBlock(b1, b);
-                        room.level.setBlock(b, Block.get(20, 0));
-                    }
-                    b1 = room.level.getBlock(new Vector3(x + 1, y, room.zi));
-                    clearEmptyX(b1, x + 2, y, room.zi);
-                }
-            }
-        }
-    }
-
-    private void z1_right() {
-        for (int z = room.za - 1; z >= room.zi; z--) {
-            for (int y = room.ya; y >= room.yi; y--) {
-                Block b = room.level.getBlock(new Vector3(room.xi, y, z));
-                if (b.getId() != 20) {
-                    Block b1 = room.level.getBlock(new Vector3(room.xi, y, z + 1));
-                    int gb = grade.get(b.getDamage());
-                    int gb1 = grade.get(b1.getDamage());
-                    if (gb == gb1) {
-                        this.check = check - 1;
-                        System.out.println(b.getDamage());
-                        int nextGrade = this.nextGrade.get(gb);
-                        room.level.setBlock(b1, Block.get(35, nextGrade));
-                        checkMaxNum(nextGrade);
-                        room.level.setBlock(b, Block.get(20, 0));
-                    } else if (b1.getId() == 20) {
-                        room.level.setBlock(b1, b);
-                        room.level.setBlock(b, Block.get(20, 0));
-                    }
-                    b1 = room.level.getBlock(new Vector3(room.xi, y, z + 1));
-                    clearEmptyZ(b1, room.xi, y, z + 2);
-                }
-            }
-        }
-    }
-
-    private void x2_right() {
-        for (int x = room.xi + 1; x <= room.xa; x++) {
-            for (int y = room.ya; y >= room.yi; y--) {
-                Block b = room.level.getBlock(new Vector3(x, y, room.zi));
-                if (b.getId() != 20) {
-                    Block b1 = room.level.getBlock(new Vector3(x - 1, y, room.zi));
-                    int gb = grade.get(b.getDamage());
-                    int gb1 = grade.get(b1.getDamage());
-                    if (gb == gb1) {
-                        this.check = check - 1;
-                        int nextGrade = this.nextGrade.get(gb);
-                        room.level.setBlock(b1, Block.get(35, nextGrade));
-                        checkMaxNum(nextGrade);
-                        room.level.setBlock(b, Block.get(20, 0));
-                    } else if (b1.getId() == 20) {
-                        room.level.setBlock(b1, b);
-                        room.level.setBlock(b, Block.get(20, 0));
-                    }
-                    b1 = room.level.getBlock(new Vector3(x - 1, y, room.zi));
-                    clearEmptyX2(b1, x - 2, y, room.zi);
-                }
-            }
-        }
-    }
-
-    private void z2_right() {
-        for (int z = room.zi + 1; z <= room.za; z++) {
-            for (int y = room.ya; y >= room.yi; y--) {
-                Block b = room.level.getBlock(new Vector3(room.xi, y, z));
-                if (b.getId() != 20) {
-                    Block b1 = room.level.getBlock(new Vector3(room.xi, y, z - 1));
-                    int gb = grade.get(b.getDamage());
-                    int gb1 = grade.get(b1.getDamage());
-                    if (gb == gb1) {
-                        this.check = check - 1;
-                        int nextGrade = this.nextGrade.get(gb);
-                        room.level.setBlock(b1, Block.get(35, nextGrade));
-                        checkMaxNum(nextGrade);
-                        room.level.setBlock(b, Block.get(20, 0));
-                    } else if (b1.getId() == 20) {
-                        room.level.setBlock(b1, b);
-                        room.level.setBlock(b, Block.get(20, 0));
-                    }
-                    b1 = room.level.getBlock(new Vector3(room.xi, y, z - 1));
-                    clearEmptyZ2(b1, room.xi, y, z - 2);
-                }
-            }
-        }
-    }
-
-    private void clearEmptyX(Block block, int x, int y, int z) {
-        for (int i = x; i <= room.xa; i++) {
-            Block b = room.level.getBlock(new Vector3(i, y, z));
-            if (b.getId() == 20) {
-                room.level.setBlock(b, block);
-                block = room.level.getBlock(new Vector3(i, y, z));
-                room.level.setBlock(block, Block.get(20, 0));
-            } else {
-                break;
-            }
-        }
-    }
-
-    private void clearEmptyZ(Block block, int x, int y, int z) {
-        for (int i = z; i <= room.za; i++) {
-            Block b = room.level.getBlock(new Vector3(x, y, i));
-            if (b.getId() == 20) {
-                room.level.setBlock(b, block);
-                block = room.level.getBlock(new Vector3(x, y, i));
-                room.level.setBlock(block, Block.get(20, 0));
-            } else {
-                break;
-            }
-        }
-    }
-
-    private void clearEmptyX2(Block block, int x, int y, int z) {
-        for (int i = x; i >= room.xi; i--) {
-            Block b = room.level.getBlock(new Vector3(i, y, z));
-            if (b.getId() == 20) {
-                room.level.setBlock(b, block);
-                block = room.level.getBlock(new Vector3(i, y, z));
-                room.level.setBlock(block, Block.get(20, 0));
-            } else {
-                break;
-            }
-        }
-    }
-
-    private void clearEmptyZ2(Block block, int x, int y, int z) {
-        for (int i = z; i >= room.zi; i--) {
-            Block b = room.level.getBlock(new Vector3(x, y, i));
-            if (b.getId() == 20) {
-                room.level.setBlock(b, block);
-                block = room.level.getBlock(new Vector3(x, y, i));
-                room.level.setBlock(block, Block.get(20, 0));
-            } else {
-                break;
-            }
-        }
-    }
-
+    //进行滑动后，将在随机位置产生一个新的方块。新方块有 90% 的几率为 ”2“, 10% 的几率是 ”4“。
+//然后，继续进行游戏，直到方格中不再有能移动的方块为止。
+//按理来说，这游戏的目标是达到一个值为“ 2048”的方块就结束了。但是，we never stop，我们可以继续进行游戏，来争取更大的胜利。理论上，方块最大值为 “ 131072” 。
     private void randomBlock() {
         while (true) {
             Block block = randomV3();
@@ -488,14 +197,14 @@ public class C2048 extends Game {
     }
 
     private Block randomV3() {
-        int x = room.xi;
-        int z = room.zi;
-        int y = new Random().nextInt(room.ya - room.yi) + room.yi;
+        int x = room.xMin;
+        int z = room.zMin;
+        int y = new Random().nextInt(room.yMax - room.yMin) + room.yMin;
 
-        if (room.zi - room.za != 0) {
-            z = new Random().nextInt(room.za - room.zi) + room.zi;
-        } else if (room.xi - room.xa != 0) {
-            x = new Random().nextInt(room.xa - room.xi) + room.xi;
+        if (room.zMin - room.zMax != 0) {
+            z = new Random().nextInt(room.zMax - room.zMin) + room.zMin;
+        } else if (room.xMin - room.xMax != 0) {
+            x = new Random().nextInt(room.xMax - room.xMin) + room.xMin;
         }
 
         return room.level.getBlock(new Vector3(x, y, z));
@@ -510,27 +219,31 @@ public class C2048 extends Game {
     @Override
     public void checkFinish() {
         if (this.maxNum >= 2048) {
-            this.room.finish = true;
-        } else if (this.check >= area) {
-            this.room.finish = false;
+            this.room.isFinished = true;
+        }
+        //判断游戏是否结束
+        //遍历二维数组，看是否存在横向和纵向两个相邻的元素相等，若存在，则游戏不结束，若不存在，则游戏结束。
+        boolean flag = false; //判断标志位，flag = false表示游戏失败
+        for (int i = 0; i < row - 1; ++i) {
+            for (int j = 0; j < col - 1; ++j) {
+                if (array[i][j] == array[i][j + 1] || array[i][j] == array[i + 1][j]) {
+                    flag = true;
+                    break;
+                }
+            }
+        }
+        if (!flag) {
+            this.room.isFinished = false;
             this.room.gamePlayer.sendMessage(">>  游戏失败");
         }
     }
 
     @Override
-    public void madeArena() {
-        int x = room.xi;
-        int z = room.zi;
-        int y = new Random().nextInt(room.ya - room.yi) + room.yi;
+    public void buildArena() {
+        Block block = randomV3();
 
-        if (room.zi - room.za != 0) {
-            z = new Random().nextInt(room.za - room.zi) + room.zi;
-        } else if (room.xi - room.xa != 0) {
-            x = new Random().nextInt(room.xa - room.xi) + room.xi;
-        }
-
-        room.level.setBlock(new Vector3(x, y, z), Block.get(35, 0));
+        room.level.setBlock(block, Block.get(35, 0));
         check = check + 1;
-        finishBuild();
+        buildOperation(true);
     }
 }

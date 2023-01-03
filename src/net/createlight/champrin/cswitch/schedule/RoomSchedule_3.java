@@ -13,11 +13,18 @@ import java.util.Random;
 
 public class RoomSchedule_3 extends Task {
 
-    private int startTime, spendTime, gameTime;
-    private Room room;
-    private int xi, xa, yi, ya, zi, za;
+    private int startTime;
+    private int spendTime;
+    private final int gameTime;
+    private final Room room;
+    private final int xi;
+    private final int xa;
+    private final int yi;
+    private final int ya;
+    private final int zi;
+    private final int za;
     private int grade = 60;//毫秒
-    private Level level;
+    private final Level level;
 
     public RoomSchedule_3(Room room) {
         this.room = room;
@@ -25,17 +32,17 @@ public class RoomSchedule_3 extends Task {
         this.gameTime = (int) room.data.get("game_time");
         this.spendTime = gameTime;
         this.level = room.level;
-        this.xi = room.xi;
-        this.xa = room.xa;
-        this.yi = room.yi;
-        this.ya = room.ya;
-        this.zi = room.zi;
-        this.za = room.za;
+        this.xi = room.xMin;
+        this.xa = room.xMax;
+        this.yi = room.yMin;
+        this.ya = room.yMax;
+        this.zi = room.zMin;
+        this.za = room.zMax;
     }
 
     @Override
     public void onRun(int tick) {
-        if (this.room.game == 0) {
+        if (!this.room.isStarted) {
             if (this.room.gamePlayer != null) {
                 this.startTime = startTime - 1;
                 Player p = room.gamePlayer;
@@ -50,7 +57,7 @@ public class RoomSchedule_3 extends Task {
                 this.spendTime = (int) room.data.get("game_time");
             }
         }
-        if (this.room.game == 1) {
+        if (this.room.isStarted) {
             this.spendTime = spendTime - 1;
             sendTarget();
             if (spendTime <= gameTime * 0.8) {
@@ -74,11 +81,11 @@ public class RoomSchedule_3 extends Task {
                 room.gamePlayer.sendMessage("§f=======================");
                 room.gamePlayer.sendMessage(">>  §f你的得分: §6§l" + this.room.rank);
                 room.gamePlayer.sendMessage("§f=======================");
-                room.plugin.checkRank(room.game_type, room.rank, room.gamePlayer.getName());
+                room.plugin.checkRank(room.gameTypeName, room.rank, room.gamePlayer.getName());
                 this.room.stopGame();
                 this.spendTime = (int) room.data.get("game_time");
             } else {
-                room.gamePlayer.sendPopup(room.game_type + ">> §a§lRemaining time:§c" + spendTime + "s  §eYour point:§6" + this.room.rank);
+                room.gamePlayer.sendPopup(room.gameTypeName + ">> §a§lRemaining time:§c" + spendTime + "s  §eYour point:§6" + this.room.rank);
             }
         }
     }
@@ -89,16 +96,9 @@ public class RoomSchedule_3 extends Task {
         int z = zi;
         int y = new Random().nextInt(ya - yi + 1) + yi;
         switch (room.direction) {
-            case "x+":
-            case "x-":
-                x = new Random().nextInt(xa - xi + 1) + xi;
-                break;
-            case "z+":
-            case "z-":
-                z = new Random().nextInt(za - zi + 1) + zi;
-                break;
-            default:
-                throw new IllegalStateException("Unexpected value: " + room.direction);
+            case "x+", "x-" -> x = new Random().nextInt(xa - xi + 1) + xi;
+            case "z+", "z-" -> z = new Random().nextInt(za - zi + 1) + zi;
+            default -> throw new IllegalStateException("Unexpected value: " + room.direction);
         }
         return new Vector3(x, y, z);
     }

@@ -19,7 +19,7 @@ public class Sudoku extends Game {
 
     public Sudoku(Room room) {
         super(room);
-        madeArena();
+        buildArena();
     }
 
     @EventHandler
@@ -29,8 +29,8 @@ public class Sudoku extends Game {
 
     @EventHandler
     public void onBreak(BlockBreakEvent event) {
-        if (this.room.finish) return;
-        if (this.game_type.equals("Sudoku")) {
+        if (this.room.isFinished) return;
+        if (this.gameTypeName.equals("Sudoku")) {
             Player player = event.getPlayer();
             if (this.room.isInGame(player)) {
                 Block block = event.getBlock();
@@ -54,8 +54,8 @@ public class Sudoku extends Game {
 
     @EventHandler
     public void onPlace(BlockPlaceEvent event) {
-        if (this.room.finish) return;
-        if (this.game_type.equals("Sudoku")) {
+        if (this.room.isFinished) return;
+        if (this.gameTypeName.equals("Sudoku")) {
             Player player = event.getPlayer();
             if (this.room.isInGame(player)) {
                 Block block = event.getBlock();
@@ -88,11 +88,11 @@ public class Sudoku extends Game {
     }
 
     private String getPosition(Block block) {
-        int xi = room.xi + 1;
-        int ya = room.ya - 1;
-        int zi = room.zi + 1;
-        int xa = room.xa - 1;
-        int za = room.za - 1;
+        int xi = room.xMin + 1;
+        int ya = room.yMax - 1;
+        int zi = room.zMin + 1;
+        int xa = room.xMax - 1;
+        int za = room.zMax - 1;
         int x = (int) Math.round(Math.floor(block.x));
         int y = (int) Math.round(Math.floor(block.y));
         int z = (int) Math.round(Math.floor(block.z));
@@ -149,12 +149,12 @@ public class Sudoku extends Game {
     @Override
     public void checkFinish() {
         if (this.room.rank >= value.size()) {
-            this.room.finish = true;
+            this.room.isFinished = true;
         }
     }
 
     @Override
-    public void madeArena() {
+    public void buildArena() {
         this.check.clear();
         ShuDuBuilder builder = new ShuDuBuilder();
         int[][] key = builder.getKey();
@@ -165,18 +165,18 @@ public class Sudoku extends Game {
         int a = 0, b = 0, h = 0;
         switch (room.direction) {
             case "x+":
-                for (int y = room.ya; y >= room.yi; y--) {
+                for (int y = room.yMax; y >= room.yMin; y--) {
                     b = b + 1;
                     if (b % 3 == 0) {
                         y = y - 1;
                     }
                     h = h + 1;
                     int l = 0;
-                    for (int x = room.xi; x <= room.xa; x++) {
+                    for (int x = room.xMin; x <= room.xMax; x++) {
                         if (key[h][l] == 0) {
-                            room.level.setBlock(new Vector3(x, y, room.zi - 1), Block.get(0, 0));
+                            room.level.setBlock(new Vector3(x, y, room.zMin - 1), Block.get(0, 0));
                         } else {
-                            room.level.setBlock(new Vector3(x, y, room.zi - 1), Block.get(35, key[h][l]));
+                            room.level.setBlock(new Vector3(x, y, room.zMin - 1), Block.get(35, key[h][l]));
                         }
                         a = a + 1;
                         l = l + 1;
@@ -188,15 +188,15 @@ public class Sudoku extends Game {
                 }
                 break;
             case "x-":
-                for (int y = room.ya; y >= room.yi; y--) {
+                for (int y = room.yMax; y >= room.yMin; y--) {
                     b = b + 1;
                     if (b % 3 == 0) {
                         y = y - 1;
                     }
                     h = h + 1;
                     int l = 0;
-                    for (int x = room.xa; x >= room.xi; x--) {
-                        room.level.setBlock(new Vector3(x, y, room.zi - 1), Block.get(35, key[h][l]));
+                    for (int x = room.xMax; x >= room.xMin; x--) {
+                        room.level.setBlock(new Vector3(x, y, room.zMin - 1), Block.get(35, key[h][l]));
                         a = a + 1;
                         l = l + 1;
                         if (a == 3) {
@@ -207,14 +207,14 @@ public class Sudoku extends Game {
                 }
                 break;
             case "z+":
-                for (int y = room.ya; y >= room.yi; y--) {
+                for (int y = room.yMax; y >= room.yMin; y--) {
                     ++b;
                     int l = 0;
-                    for (int z = room.zi; z <= room.za; z++) {
+                    for (int z = room.zMin; z <= room.zMax; z++) {
                         if (key[h][l] == 0) {
-                            room.level.setBlock(new Vector3(room.xi - 1, y, z), Block.get(0, 0));
+                            room.level.setBlock(new Vector3(room.xMin - 1, y, z), Block.get(0, 0));
                         } else {
-                            room.level.setBlock(new Vector3(room.xi - 1, y, z), Block.get(35, key[h][l]));
+                            room.level.setBlock(new Vector3(room.xMin - 1, y, z), Block.get(35, key[h][l]));
                         }
                         ++a;
                         if (a == 3) {
@@ -231,15 +231,15 @@ public class Sudoku extends Game {
                 }
                 break;
             case "z-":
-                for (int y = room.ya; y >= room.yi; y--) {
+                for (int y = room.yMax; y >= room.yMin; y--) {
                     b = b + 1;
                     if (b % 3 == 0) {
                         y = y - 1;
                     }
                     h = h + 1;
                     int l = 0;
-                    for (int z = room.za; z >= room.zi; z--) {
-                        room.level.setBlock(new Vector3(room.xi - 1, y, z), Block.get(35, key[h][l]));
+                    for (int z = room.zMax; z >= room.zMin; z--) {
+                        room.level.setBlock(new Vector3(room.xMin - 1, y, z), Block.get(35, key[h][l]));
                         a = a + 1;
                         l = l + 1;
                         if (a % 3 == 0) {
@@ -249,6 +249,6 @@ public class Sudoku extends Game {
                 }
                 break;
         }
-        finishBuild();
+        buildOperation(true);
     }
 }

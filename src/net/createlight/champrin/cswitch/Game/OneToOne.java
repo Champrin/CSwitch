@@ -19,9 +19,9 @@ public class OneToOne extends Game implements Listener {
 
     @EventHandler
     public void onTouch(PlayerInteractEvent event) {
-        if (this.room.finish) return;
-        if (this.game_type.equals("OneToOne")) {
-            if (this.room.game != 1) return;
+        if (this.room.isFinished) return;
+        if (this.gameTypeName.equals("OneToOne")) {
+            if (!this.room.isStarted) return;
             Player player = event.getPlayer();
             if (this.room.isInGame(player)) {
                 Block block = event.getBlock();
@@ -48,35 +48,35 @@ public class OneToOne extends Game implements Listener {
     @Override
     public void checkFinish() {
         if (count >= area) {
-            this.room.finish = true;
+            this.room.isFinished = true;
             this.count = 0;
         }
     }
 
     @Override
-    public void madeArena() {
+    public void buildArena() {
         switch (room.direction) {
             case "x+":
             case "x-":
-                for (int x = room.xi; x <= room.xa; x++) {
-                    for (int y = room.yi; y <= room.ya; y++) {
+                for (int x = room.xMin; x <= room.xMax; x++) {
+                    for (int y = room.yMin; y <= room.yMax; y++) {
                         int num = new Random().nextInt(16);
                         Block block = Block.get(35, num);
-                        room.level.setBlock(new Vector3(x, y, room.zi), block);
+                        room.level.setBlock(new Vector3(x, y, room.zMin), block);
                     }
                 }
                 break;
             case "z+":
             case "z-":
-                for (int z = room.zi; z <= room.za; z++) {
-                    for (int y = room.yi; y <= room.ya; y++) {
+                for (int z = room.zMin; z <= room.zMax; z++) {
+                    for (int y = room.yMin; y <= room.yMax; y++) {
                         int num = new Random().nextInt(16);
                         Block block = Block.get(35, num);
-                        room.level.setBlock(new Vector3(room.xi, y, z), block);
+                        room.level.setBlock(new Vector3(room.xMin, y, z), block);
                     }
                 }
                 break;
         }
-        finishBuild();
+        buildOperation(true);
     }
 }

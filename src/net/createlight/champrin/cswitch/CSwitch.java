@@ -473,6 +473,7 @@ TODO
                             String d = null;
                             int width = 0;
 
+                            // x+/x- z+/z- 为朝向不同
                             if (pos1[2].equals(pos2[2]) && Integer.parseInt(pos1[0]) < Integer.parseInt(pos2[0]))//从pos1开始运作
                             {
                                 d = "x+";
@@ -627,7 +628,7 @@ TODO
                             }
                             if (this.isRoomSet(args[1])) {
                                 Room a = this.rooms.get(args[1]);
-                                if (a.game != 0 || a.gamePlayer != null) {
+                                if (a.isStarted || a.gamePlayer != null) {
                                     sender.sendMessage(">  房间正在游戏中");
                                     break;
                                 }
@@ -739,38 +740,23 @@ TODO
     }
 
     public String getChineseName(String gameName) {
-        switch (gameName) {
-            case "LightsOut":
-                return "关灯";
-            case "OneToOne":
-                return "一一对应";
-            case "Jigsaw":
-                return "拼图";
-            case "RemoveAll":
-                return "方块消消乐";
-            case "OnOneLine":
-                return "宾果消消乐";
-            case "BlockPlay_4":
-                return "4X4方块华容道";
-            case "BlockPlay_3":
-                return "3X3方块华容道";
-            case "CrazyClick":
-                return "疯狂点击";
-            case "Sudoku":
-                return "数独";
-            case "C2048":
-                return "2048";
-            case "AvoidWhiteBlock":
-                return "别踩白块";
-            case "HanoiTower":
-                return "汉诺塔游戏";
-            case "BeFaster":
-                return "快速反应";
-            case "CardMemory":
-                return "颜色记忆";
-            default:
-                return null;
-        }
+        return switch (gameName) {
+            case "LightsOut" -> "关灯";
+            case "OneToOne" -> "一一对应";
+            case "Jigsaw" -> "拼图";
+            case "RemoveAll" -> "方块消消乐";
+            case "OnOneLine" -> "宾果消消乐";
+            case "BlockPlay_4" -> "4X4方块华容道";
+            case "BlockPlay_3" -> "3X3方块华容道";
+            case "CrazyClick" -> "疯狂点击";
+            case "Sudoku" -> "数独";
+            case "C2048" -> "2048";
+            case "AvoidWhiteBlock" -> "别踩白块";
+            case "HanoiTower" -> "汉诺塔游戏";
+            case "BeFaster" -> "快速反应";
+            case "CardMemory" -> "颜色记忆";
+            default -> null;
+        };
     }
 
     public void checkRank(String gameName, int spendTime, String gamer) {
@@ -834,10 +820,10 @@ TODO
     public void changeSign(String roomName) {
         BlockEntitySign sign = FT.get(roomName).get(0);
         Room room = rooms.get(roomName);
-        if (room.game == 0) {
-            sign.setText(PREFIX, room.game_type, "§a点击加入游戏");
+        if (!room.isStarted) {
+            sign.setText(PREFIX, room.gameTypeName, "§a点击加入游戏");
         } else {
-            sign.setText(PREFIX, room.game_type, "§f" + room.gamePlayer.getName() + "§a正在游戏");
+            sign.setText(PREFIX, room.gameTypeName, "§f" + room.gamePlayer.getName() + "§a正在游戏");
         }
     }
 }

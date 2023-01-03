@@ -8,7 +8,7 @@ import net.createlight.champrin.cswitch.untils.Countdown;
 public class RoomSchedule extends Task {
 
     private int startTime, spendTime = 0;
-    private Room room;
+    private final Room room;
 
     public RoomSchedule(Room room) {
         this.room = room;
@@ -17,7 +17,7 @@ public class RoomSchedule extends Task {
 
     @Override
     public void onRun(int tick) {
-        if (this.room.game == 0) {
+        if (!this.room.isStarted) {
             if (this.room.gamePlayer != null) {
                 this.startTime = startTime - 1;
                 Player p = room.gamePlayer;
@@ -32,20 +32,20 @@ public class RoomSchedule extends Task {
                 this.spendTime = 0;
             }
         }
-        if (this.room.game == 1) {
+        if (this.room.isStarted) {
             this.spendTime = spendTime + 1;
             if (this.room.gamePlayer == null) {
                 this.room.stopGame();
                 this.spendTime = 0;
-            } else if (this.room.finish) {
+            } else if (this.room.isFinished) {
                 room.gamePlayer.sendMessage("§f=======================");
                 room.gamePlayer.sendMessage(">>  §a完成游戏所用时间: §6§l" + spendTime);
                 room.gamePlayer.sendMessage("§f=======================");
-                room.plugin.checkRank(room.game_type, spendTime, room.gamePlayer.getName());
+                room.plugin.checkRank(room.gameTypeName, spendTime, room.gamePlayer.getName());
                 this.room.stopGame();
                 this.spendTime = 0;
             } else {
-                room.gamePlayer.sendPopup(room.game_type + ">> §a§lElapsed time:§c" + spendTime + "s  §eYour point:§6" + this.room.rank);
+                room.gamePlayer.sendPopup(room.gameTypeName + ">> §a§lElapsed time:§c" + spendTime + "s  §eYour point:§6" + this.room.rank);
             }
         }
     }
