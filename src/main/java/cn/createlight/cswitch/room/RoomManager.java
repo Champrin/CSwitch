@@ -1,6 +1,8 @@
 package cn.createlight.cswitch.room;
 
 import cn.createlight.cswitch.CSwitch;
+import cn.createlight.cswitch.CSwitchGameType;
+import cn.createlight.cswitch.config.LanguageConfigKey;
 import cn.nukkit.Player;
 import cn.nukkit.block.Block;
 import cn.nukkit.blockentity.BlockEntity;
@@ -13,7 +15,8 @@ import java.util.*;
 
 public class RoomManager {
     public static CSwitch plugin = CSwitch.getInstance();
-    private static LinkedHashMap<String, LinkedHashMap<String, Object>> roomsConfig = new LinkedHashMap<>(); // 房间Config
+    private static LinkedHashMap<String, LinkedHashMap<String, Object>> roomsData = new LinkedHashMap<>(); // 房间Data
+    private static LinkedHashMap<String, Config> roomsConfig = new LinkedHashMap<>(); // 房间Data
     private static LinkedHashMap<String, Room> rooms = new LinkedHashMap<>(); // id->Room实例
     private static LinkedHashMap<String, ArrayList<BlockEntitySign>> blockSigns = new LinkedHashMap<>(); // 每个房间的木牌（ArrayList[0]：加入游戏木牌 ArrayList[1]：查看游戏规则木牌）
 
@@ -21,12 +24,17 @@ public class RoomManager {
         return new Config(CSwitch.roomConfigFolderPath + roomID + ".yml", Config.YAML);
     }
 
-    public static LinkedHashMap<String, Object> getRoomConfig(String roomID) {
+    public static LinkedHashMap<String, Object> getRoomData(String roomID) {
+        return roomsData.get(roomID);
+    }
+
+    public static Config getRoomConfig(String roomID) {
         return roomsConfig.get(roomID);
     }
 
-    public static void addRoomConfig(String roomID, Map<String, Object> allConfig) {
-        roomsConfig.put(roomID, new LinkedHashMap<>(allConfig));
+    public static void addRoomConfig(String roomID, Config config) {
+        roomsConfig.put(roomID, config);
+        roomsData.put(roomID, new LinkedHashMap<>(config.getAll()));
     }
 
     /**
@@ -36,7 +44,7 @@ public class RoomManager {
      * @return 是否存在
      */
     public static boolean isExistRoomConfig(String roomID) {
-        return roomsConfig.containsKey(roomID);
+        return roomsData.containsKey(roomID);
     }
 
     /**
@@ -82,15 +90,15 @@ public class RoomManager {
         if (rooms.containsKey(roomID)) {
             rooms.get(roomID).stopGame();
             rooms.remove(roomID);
+            removeSigns(roomID);
         }
-        removeSigns(roomID);
-        roomsConfig.remove(roomID);
+        roomsData.remove(roomID);
     }
 
-    public static void setRoomData(String name) {
-        Room game = new Room(name);
-        rooms.put(name, game);
-        addSigns(name);
+    public static void addAvailableRoom(String roomID) {
+        Room game = new Room(roomID);
+        rooms.put(roomID, game);
+        addSigns(roomID);
         plugin.getServer().getPluginManager().registerEvents(game, plugin);
     }
 
@@ -104,33 +112,65 @@ public class RoomManager {
      * @param roomID 房间ID
      */
     public static void addSigns(String roomID) {
-        LinkedHashMap<String, Object> data = roomsConfig.get(roomID);
-        Level level = plugin.getServer().getLevelByName((String) data.get("room_world"));
+        LinkedHashMap<String, Object> data = roomsData.get(roomID);
+        Level level = plugin.getServer().getLevelByName((String) data.get(RoomConfigKey.ROOM_WORLD.toConfigKey()));
 
-        String[] p1 = ((String) data.get("button_pos")).split("\\+");
-        String[] p2 = ((String) data.get("rule_pos")).split("\\+");
+        String[] joinSignPoint = ((String) data.get(RoomConfigKey.JOIN_POINT.toConfigKey())).split(",");
+        String[] ruleSignPoint = ((String) data.get(RoomConfigKey.RULE_POINT.toConfigKey())).split(",");
+
+        Config gameTipConfig = CSwitch.gameTipConfig;
+
+        String gameType = CSwitchGameType.valueOf(
+                (String) data.get(RoomConfigKey.GAME_TYPE.toConfigKey())
+        ).toName();
 
         BlockEntitySign joinSign = getBlockEntitySign(
                 level,
-                (int) Math.floor(Integer.parseInt(p1[0])),
-                (int) Math.floor(Integer.parseInt(p1[1])),
-                (int) Math.floor(Integer.parseInt(p1[2])));
+                (int) Math.floor(Integer.parseInt(joinSignPoint[0])),
+                (int) Math.floor(Integer.parseInt(joinSignPoint[1])),
+                (int) Math.floor(Integer.parseInt(joinSignPoint[2])));
         joinSign.setText(
-                CSwitch.PREFIX,
-                (String) data.get("game_type"),
-                "§a点击加入游戏",
-                "§f房间ID:" + roomID);
+                gameTipConfig.getString(LanguageConfigKey.SIGN_JOIN_FREE_LINE1.toConfigKey())
+                        .replace("{PREFIX}", CSwitch.PREFIX)
+                        .replace("{GAME_TYPE}", gameType)
+                        .replace("{ROOM_ID}", roomID),
+                gameTipConfig.getString(LanguageConfigKey.SIGN_JOIN_FREE_LINE2.toConfigKey())
+                        .replace("{PREFIX}", CSwitch.PREFIX)
+                        .replace("{GAME_TYPE}", gameType)
+                        .replace("{ROOM_ID}", roomID),
+                gameTipConfig.getString(LanguageConfigKey.SIGN_JOIN_FREE_LINE3.toConfigKey())
+                        .replace("{PREFIX}", CSwitch.PREFIX)
+                        .replace("{GAME_TYPE}", gameType)
+                        .replace("{ROOM_ID}", roomID),
+                gameTipConfig.getString(LanguageConfigKey.SIGN_JOIN_FREE_LINE4.toConfigKey())
+                        .replace("{PREFIX}", CSwitch.PREFIX)
+                        .replace("{GAME_TYPE}", gameType)
+                        .replace("{ROOM_ID}", roomID)
+        );
 
         BlockEntitySign ruleSign = getBlockEntitySign(
                 level,
-                (int) Math.floor(Integer.parseInt(p2[0])),
-                (int) Math.floor(Integer.parseInt(p2[1])),
-                (int) Math.floor(Integer.parseInt(p2[2])));
+                (int) Math.floor(Integer.parseInt(ruleSignPoint[0])),
+                (int) Math.floor(Integer.parseInt(ruleSignPoint[1])),
+                (int) Math.floor(Integer.parseInt(ruleSignPoint[2])));
         ruleSign.setText(
-                CSwitch.PREFIX,
-                (String) data.get("game_type"),
-                "§a点击查看游戏介绍",
-                "§f房间ID:" + roomID);
+                gameTipConfig.getString(LanguageConfigKey.SIGN_RULE_LINE1.toConfigKey())
+                        .replace("{PREFIX}", CSwitch.PREFIX)
+                        .replace("{GAME_TYPE}", gameType)
+                        .replace("{ROOM_ID}", roomID),
+                gameTipConfig.getString(LanguageConfigKey.SIGN_RULE_LINE2.toConfigKey())
+                        .replace("{PREFIX}", CSwitch.PREFIX)
+                        .replace("{GAME_TYPE}", gameType)
+                        .replace("{ROOM_ID}", roomID),
+                gameTipConfig.getString(LanguageConfigKey.SIGN_RULE_LINE3.toConfigKey())
+                        .replace("{PREFIX}", CSwitch.PREFIX)
+                        .replace("{GAME_TYPE}", gameType)
+                        .replace("{ROOM_ID}", roomID),
+                gameTipConfig.getString(LanguageConfigKey.SIGN_RULE_LINE4.toConfigKey())
+                        .replace("{PREFIX}", CSwitch.PREFIX)
+                        .replace("{GAME_TYPE}", gameType)
+                        .replace("{ROOM_ID}", roomID)
+        );
 
         blockSigns.put(roomID, new ArrayList<>(Arrays.asList(joinSign, ruleSign)));
     }
@@ -166,22 +206,54 @@ public class RoomManager {
      * @param roomID 房间ID
      */
     public static void changeSignText(String roomID) {
-        BlockEntitySign sign = blockSigns.get(roomID).get(0);
         Room room = rooms.get(roomID);
+        Config gameTipConfig = CSwitch.gameTipConfig;
+
+        String gameType = room.gameType.toName();
+
+        BlockEntitySign sign = blockSigns.get(roomID).get(0);
         if (!room.isStarted) {
-            //TODO room.gameType.toString()
-            //TODO text内容配置文件化
             sign.setText(
-                    CSwitch.PREFIX,
-                    room.gameType.toName(),
-                    "§a点击加入游戏",
-                    "§f房间ID:" + roomID);
+                    gameTipConfig.getString(LanguageConfigKey.SIGN_JOIN_FREE_LINE1.toConfigKey())
+                            .replace("{PREFIX}", CSwitch.PREFIX)
+                            .replace("{GAME_TYPE}", gameType)
+                            .replace("{ROOM_ID}", roomID),
+                    gameTipConfig.getString(LanguageConfigKey.SIGN_JOIN_FREE_LINE2.toConfigKey())
+                            .replace("{PREFIX}", CSwitch.PREFIX)
+                            .replace("{GAME_TYPE}", gameType)
+                            .replace("{ROOM_ID}", roomID),
+                    gameTipConfig.getString(LanguageConfigKey.SIGN_JOIN_FREE_LINE3.toConfigKey())
+                            .replace("{PREFIX}", CSwitch.PREFIX)
+                            .replace("{GAME_TYPE}", gameType)
+                            .replace("{ROOM_ID}", roomID),
+                    gameTipConfig.getString(LanguageConfigKey.SIGN_JOIN_FREE_LINE4.toConfigKey())
+                            .replace("{PREFIX}", CSwitch.PREFIX)
+                            .replace("{GAME_TYPE}", gameType)
+                            .replace("{ROOM_ID}", roomID)
+            );
         } else {
             sign.setText(
-                    CSwitch.PREFIX,
-                    room.gameType.toName(),
-                    "§f" + room.gamePlayer.getName() + "§a正在游戏",
-                    "§f房间ID:" + roomID);
+                    gameTipConfig.getString(LanguageConfigKey.SIGN_JOIN_NOT_FREE_LINE1.toConfigKey())
+                            .replace("{PREFIX}", CSwitch.PREFIX)
+                            .replace("{GAME_TYPE}", gameType)
+                            .replace("{PLAYER}", room.gamePlayer.getName())
+                            .replace("{ROOM_ID}", roomID),
+                    gameTipConfig.getString(LanguageConfigKey.SIGN_JOIN_NOT_FREE_LINE2.toConfigKey())
+                            .replace("{PREFIX}", CSwitch.PREFIX)
+                            .replace("{GAME_TYPE}", gameType)
+                            .replace("{PLAYER}", room.gamePlayer.getName())
+                            .replace("{ROOM_ID}", roomID),
+                    gameTipConfig.getString(LanguageConfigKey.SIGN_JOIN_NOT_FREE_LINE3.toConfigKey())
+                            .replace("{PREFIX}", CSwitch.PREFIX)
+                            .replace("{GAME_TYPE}", gameType)
+                            .replace("{PLAYER}", room.gamePlayer.getName())
+                            .replace("{ROOM_ID}", roomID),
+                    gameTipConfig.getString(LanguageConfigKey.SIGN_JOIN_NOT_FREE_LINE4.toConfigKey())
+                            .replace("{PREFIX}", CSwitch.PREFIX)
+                            .replace("{GAME_TYPE}", gameType)
+                            .replace("{PLAYER}", room.gamePlayer.getName())
+                            .replace("{ROOM_ID}", roomID)
+            );
         }
     }
 }

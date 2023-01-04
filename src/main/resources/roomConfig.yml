@@ -1,0 +1,21 @@
+room-id: ""
+game-type: ""
+setup-step: 0
+setup-finish: false
+
+room-world: "world"
+arena-point1: ",,"
+arena-point2: ",,"
+join-point: ",,"
+rule-point: ",,"
+
+length: 0
+width: 0
+area: 0
+direction: "X_PLUS"
+
+prepare-time: 20
+game-time: 120
+
+addition:
+  - 10

@@ -1,53 +1,66 @@
 package cn.createlight.cswitch.game;
 
+import cn.createlight.cswitch.CSwitchGameType;
 import cn.nukkit.Player;
 import cn.nukkit.block.Block;
+import cn.nukkit.block.BlockID;
 import cn.nukkit.event.EventHandler;
 import cn.nukkit.event.Listener;
 import cn.nukkit.event.player.PlayerInteractEvent;
-import cn.nukkit.item.Item;
 import cn.nukkit.level.Level;
 import cn.nukkit.math.Vector3;
 import cn.createlight.cswitch.room.Room;
-
 
 public class OnOneLine extends Game implements Listener {
     public OnOneLine(Room room) {
         super(room);
     }
 
-    Block firstBlock = null;
+    Block lastBlock = null;
 
     @EventHandler
     public void onTouch(PlayerInteractEvent event) {
+        // 房间游戏条件限制
+        if (this.gameType != CSwitchGameType.MAKE_A_LINE) return;
         if (this.room.isFinished) return;
-        if (this.gameType.equals("OnOneLine")) {
-            Block block = event.getBlock();
-            Level level = block.level;
-            Player player = event.getPlayer();
-            if (this.room.isInGame(player)) {
-                if (this.room.isInArena(block)) {
-                    event.setCancelled(true);
-                    if (firstBlock == null) {
-                        this.firstBlock = block;
-                    } else {
-                        level.setBlock(firstBlock, block);
-                        level.setBlock(block, firstBlock);
-                        this.updateBlock(firstBlock);
-                        firstBlock = null;
-                    }
-                    int item = player.getInventory().getItemInHand().getId();
-                    if (item == Item.DOOR_BLOCK) {
-                        this.room.isFinished = true;
-                        this.count = 0;
-                    }
-                }
-            }
+        if (!this.room.isStarted) return;
+        Player player = event.getPlayer();
+        if (!this.room.isInGame(player)) return;
+
+        // 满足判断条件，终止事件带来的其他影响
+        event.setCancelled(true);
+
+        // 该类型游戏机制
+        Block block = event.getBlock();
+        if (block.getId() != BlockID.STAINED_TERRACOTTA) return;
+        if (!this.room.isInArena(block)) return;
+
+        Level level = block.level;
+        if (lastBlock == null) {
+            this.lastBlock = block;
+        } else {
+            // setBlock(Vector3 v3, Block block)
+            level.setBlock(lastBlock, block);
+            level.setBlock(block, lastBlock);
+            updateBlock(lastBlock);
+            lastBlock = null;
         }
+
+        //TODO 判断能否进行游戏
+//        int item = player.getInventory().getItemInHand().getId();
+//        if (item == Item.DOOR_BLOCK) {
+//            this.room.isFinished = true;
+//            this.count = 0;
+//        }
     }
 
+    // 0.
+    // 1.
+    // 2.
+    // 3.
+    // 4.
+
     public void updateBlock(Block block) {
-        if (block.getId() != 159) return;
         int mate = block.getDamage();
         this.EliminateBlock(block, mate);
         this.count = 0;
@@ -55,8 +68,14 @@ public class OnOneLine extends Game implements Listener {
         this.checkFinish();
     }
 
+    //TODO 考虑用DFS还是BFS
+    //TODO 随机数据保证能有一种解
+
+    private void searchSameBlock(){
+
+    }
+
     public void EliminateBlock(Block block, int mate) {
-        if (block.getId() != 159) return;
 
         Level level = block.level;
         int x = (int) Math.round(Math.floor(block.x));
@@ -80,7 +99,7 @@ public class OnOneLine extends Game implements Listener {
         Block block = level.getBlock(v3);
         if (block.getDamage() == mate) {
             this.count = count + 1;
-            level.setBlock(block, Block.get(0, 0));
+            level.setBlock(block, Block.get(BlockID.AIR,0));
             this.check = check + 1;
             this.room.point = this.room.point + count;
             this.EliminateBlock(block, mate);
@@ -91,7 +110,7 @@ public class OnOneLine extends Game implements Listener {
         Level level = block.level;
         Block underBlock = level.getBlock(new Vector3(block.getFloorX(), block.getFloorY() - 1, block.getFloorZ()));
         if (underBlock.getId() == 0) {
-            level.setBlock(block, Block.get(0, 0));
+            level.setBlock(block, Block.get(BlockID.AIR,0));
             level.setBlock(underBlock, block);
             this.FallingBlock(level.getBlock(new Vector3(underBlock.getFloorX(), underBlock.getFloorY(), underBlock.getFloorZ())));
         }
@@ -99,31 +118,24 @@ public class OnOneLine extends Game implements Listener {
 
     public void MoveBlock(Block block) {
         Level level = block.level;
-        String[] p1 = ((String) this.room.data.get("pos1")).split("\\+");
-        String[] p2 = ((String) this.room.data.get("pos2")).split("\\+");
-        int xi = (Math.min(Integer.parseInt(p1[0]), Integer.parseInt(p2[0])));
-        int xa = (Math.max(Integer.parseInt(p1[0]), Integer.parseInt(p2[0])));
-        int yi = (Math.min(Integer.parseInt(p1[1]), Integer.parseInt(p2[1])));
-        int ya = (Math.max(Integer.parseInt(p1[1]), Integer.parseInt(p2[1])));
-        int zi = (Math.min(Integer.parseInt(p1[2]), Integer.parseInt(p2[2])));
-        int za = (Math.max(Integer.parseInt(p1[2]), Integer.parseInt(p2[2])));
+
         switch (room.direction) {
             case X_PLUS:
             case X_MINUS:
-                for (int y = yi; y <= ya; y++) {
-                    for (int x = xi; x <= xa; x++) {
-                        if (level.getBlock(new Vector3(x, y, zi)).getId() != 0) {
-                            FallingBlock(level.getBlock(new Vector3(x, y, zi)));
+                for (int y = room.yMin; y <= room.yMax; y++) {
+                    for (int x = room.xMin; x <= room.xMax; x++) {
+                        if (level.getBlock(new Vector3(x, y, room.zMin)).getId() != 0) {
+                            FallingBlock(level.getBlock(new Vector3(x, y, room.zMin)));
                         }
                     }
                 }
                 break;
             case Z_PLUS:
             case Z_MINUS:
-                for (int y = yi; y <= ya; y++) {
-                    for (int z = zi; z <= za; z++) {
-                        if (level.getBlock(new Vector3(xi, y, z)).getId() != 0) {
-                            FallingBlock(level.getBlock(new Vector3(xi, y, z)));
+                for (int y = room.yMin; y <= room.yMax; y++) {
+                    for (int z = room.zMin; z <= room.zMax; z++) {
+                        if (level.getBlock(new Vector3(room.xMin, y, z)).getId() != 0) {
+                            FallingBlock(level.getBlock(new Vector3(room.xMin, y, z)));
                         }
 
                     }
@@ -224,7 +236,7 @@ public class OnOneLine extends Game implements Listener {
 
     @Override
     public void buildArena() {
-        this.firstBlock = null;
+        this.lastBlock = null;
         buildOperation(true);
     }
 }

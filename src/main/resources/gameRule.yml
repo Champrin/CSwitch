@@ -1,3 +1,6 @@
+rule-form-window-title: "{GAME_TYPE}§6游戏介绍"
+rule-form-window-content: "§f{GAME_TYPE}§7>>§6§l{GAME_TYPE_PREFIX}§7§r---§c§l游戏玩法\n{GAME_RULE}"
+
 LightsOut:
   - "§a胜利条件: §f使所有方块都是绿色羊毛"
   - "§b玩法: §f点击黑色羊毛，其上下左右的黑色"

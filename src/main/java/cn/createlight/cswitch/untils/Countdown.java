@@ -2,11 +2,11 @@ package cn.createlight.cswitch.untils;
 
 
 import cn.createlight.cswitch.CSwitch;
+import cn.createlight.cswitch.config.LanguageConfigKey;
 
 public class Countdown {
 
-    private static final String tip = CSwitch.getInstance().language.getString("countdown-to-start-game");
-
+    private static final String tip = CSwitch.gameTipConfig.getString(LanguageConfigKey.GAME_PREPARE.toConfigKey());
 
     public static String countDown(int number) {
         switch (number) {

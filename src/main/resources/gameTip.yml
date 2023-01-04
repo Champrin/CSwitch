@@ -1,7 +1,22 @@
 game-fail: ""
 game-start: ""
 game-stop: ""
-game-count-greaterThan-10: "§e游戏即将开始.."
+game-prepare: "§e游戏即将开始.."
+
+sign-join-free-line1: "{PREFIX}"
+sign-join-free-line2: "{GAME_TYPE}"
+sign-join-free-line3: "§a点击加入游戏"
+sign-join-free-line4: "§f房间ID:{ROOM_ID}"
+
+sign-join-not-free-line1: "{PREFIX}"
+sign-join-not-free-line2: "{GAME_TYPE}"
+sign-join-not-free-line3: "§f{PLAYER}§a正在游戏"
+sign-join-not-free-line4: "§f房间ID:{ROOM_ID}"
+
+sign-rule-line1: "{PREFIX}"
+sign-rule-line2: "{GAME_TYPE}"
+sign-rule-line3: "§a点击查看游戏介绍"
+sign-rule-line4: "§f房间ID:{ROOM_ID}"
 
 count-type-gaming:
   - "{GAME_TYPE}>> §a§l游戏计时: §c{TIME}s  §e获得分数: §6{SCORE}"

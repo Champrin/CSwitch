@@ -1,6 +1,7 @@
 package cn.createlight.cswitch.room;
 
 import cn.createlight.cswitch.CSwitch;
+import cn.createlight.cswitch.CSwitchGameType;
 import cn.createlight.cswitch.game.*;
 import cn.createlight.cswitch.schedule.RoomSchedule;
 import cn.createlight.cswitch.schedule.RoomSchedule_2;
@@ -37,7 +38,7 @@ public class Room implements Listener {
 
     public Game gameTypeObject; // 游戏类型对象
 
-    public CSwitch.GameType gameType; // 游戏类型名
+    public CSwitchGameType gameType; // 游戏类型名
 
     public Player gamePlayer = null; // 游戏玩家
 
@@ -67,11 +68,11 @@ public class Room implements Listener {
 
     public Room(String id) {
         this.id = id;
-        this.data = RoomManager.getRoomConfig(id);
-        this.gameType = CSwitch.GameType.valueOf((String) data.get(RoomConfig.GAME_TYPE.toConfigKey()));
+        this.data = RoomManager.getRoomData(id);
+        this.gameType = CSwitchGameType.valueOf((String) data.get(RoomConfigKey.GAME_TYPE.toConfigKey()));
 
-        String[] p1 = ((String) data.get("pos1")).split("\\+");
-        String[] p2 = ((String) data.get("pos2")).split("\\+");
+        String[] p1 = ((String) data.get("pos1")).split(",");
+        String[] p2 = ((String) data.get("pos2")).split(",");
 
         this.direction = Direction.valueOf((String) data.get("direction"));
         this.level = this.plugin.getServer().getLevelByName((String) data.get("room_world"));
@@ -355,10 +356,10 @@ public class Room implements Listener {
             }
             default: {
                 int id = 35, mate = 5;
-                if (gameType == CSwitch.GameType.JIGSAW || gameType == CSwitch.GameType.N_PUZZLE || gameType == CSwitch.GameType.THE_2048) {
+                if (gameType == CSwitchGameType.JIGSAW || gameType == CSwitchGameType.N_PUZZLE || gameType == CSwitchGameType.THE_2048) {
                     id = 20;
                     mate = 0;
-                } else if (gameType == CSwitch.GameType.QUICK_REACTION || gameType == CSwitch.GameType.CARD_MEMORY) {
+                } else if (gameType == CSwitchGameType.QUICK_REACTION || gameType == CSwitchGameType.CARD_MEMORY) {
                     mate = 0;
                 }
                 switch (direction) {
@@ -455,7 +456,7 @@ public class Room implements Listener {
 
         player.sendMessage(">  你加入了游戏,等待游戏开始");
         player.sendMessage(">  输入@hub可退出游戏！");
-        if (gameType == CSwitch.GameType.MAKE_A_LINE) {
+        if (gameType == CSwitchGameType.MAKE_A_LINE) {
             player.sendMessage(">>  §c当你认为你已经不能再进行下一步时,请切换“门”物品以结束游戏！此游戏排行榜以分统计！");
             player.sendMessage(">>  §c当你认为你已经不能再进行下一步时,请切换“门”物品以结束游戏！此游戏排行榜以分统计！");
             player.sendMessage(">>  §c当你认为你已经不能再进行下一步时,请切换“门”物品以结束游戏！此游戏排行榜以分统计！");
@@ -555,7 +556,7 @@ public class Room implements Listener {
     @SuppressWarnings("unused")
     public void onBlockBreak(BlockBreakEvent event) {
         if (this.isInGame(event.getPlayer())) {
-            if (gameType != CSwitch.GameType.SUDOKU) event.setCancelled(true);
+            if (gameType != CSwitchGameType.SUDOKU) event.setCancelled(true);
             if (!isStarted) event.setCancelled(true);
         }
     }
@@ -564,7 +565,7 @@ public class Room implements Listener {
     @SuppressWarnings("unused")
     public void onBlockPlace(BlockPlaceEvent event) {
         if (this.isInGame(event.getPlayer())) {
-            if (gameType != CSwitch.GameType.SUDOKU) event.setCancelled(true);
+            if (gameType != CSwitchGameType.SUDOKU) event.setCancelled(true);
             if (!isStarted) event.setCancelled(true);
         }
     }

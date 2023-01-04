@@ -1,5 +1,7 @@
 package cn.createlight.cswitch.game;
 
+import cn.createlight.cswitch.CSwitchGameType;
+import cn.createlight.cswitch.room.RoomConfigKey;
 import cn.nukkit.block.Block;
 import cn.nukkit.block.BlockID;
 import cn.nukkit.event.Listener;
@@ -16,7 +18,7 @@ public abstract class Game implements Listener {
     /**
      * 游戏类型名
      */
-    public CSwitch.GameType gameType;
+    public CSwitchGameType gameType;
     /**
      * 游戏区域面积
      */
@@ -88,10 +90,11 @@ public abstract class Game implements Listener {
      *              false 表示未完成游戏区域搭建，即游戏区域不可用
      */
     public void buildOperation(boolean value) {
-        Config config = RoomManager.getRoomConfigFile(room.id); //TODO
-        config.set("arena", true);
+        room.data.put(RoomConfigKey.BUILD_FINISH.toConfigKey(), true);
+
+        Config config = RoomManager.getRoomConfig(room.id);
+        config.set(RoomConfigKey.BUILD_FINISH.toConfigKey(), true);
         config.save();
-        room.data.put("arena", true);
     }
 
     /**

@@ -1,8 +1,12 @@
 package cn.createlight.cswitch;
 
+import cn.createlight.cswitch.config.ConfigManager;
+import cn.createlight.cswitch.config.LanguageConfigKey;
+import cn.createlight.cswitch.room.RoomConfigKey;
 import cn.createlight.cswitch.untils.MetricsLite;
 import cn.nukkit.Player;
 import cn.nukkit.block.Block;
+import cn.nukkit.block.BlockID;
 import cn.nukkit.blockentity.BlockEntity;
 import cn.nukkit.blockentity.BlockEntitySign;
 import cn.nukkit.command.Command;
@@ -30,14 +34,14 @@ TODO
     按照四种颜色闪光的顺序重复点击一遍，尽量做到无错误
     *建筑记忆
 */
-    public Config config, language;
+    public static Config setupRoomTipConfig, gameTipConfig, gameRuleConfig, commandConfig, gameTypePrefixConfig;
     public static final String PLUGIN_NAME = "CSwitch";
     public static final String PLUGIN_No = "2";
     public static final String PREFIX = "§a=§l§6" + PLUGIN_NAME + "§r§a=";
     public static final String GAME_NAME = "我的游戏机!";
-    public LinkedHashMap<String, LinkedHashMap<String, String>> setters = new LinkedHashMap<>();//房间设置者
+    public LinkedHashMap<String, LinkedHashMap<String, String>> setters = new LinkedHashMap<>(); // 房间设置者
 
-    public LinkedHashMap<Integer, String> Game = new LinkedHashMap<>();
+    public static LinkedHashMap<CSwitchGameType, String> gameTypePrefix = new LinkedHashMap<>();
 
     public static String pluginConfigFolderPath;
     public static String roomConfigFolderPath;
@@ -48,42 +52,25 @@ TODO
         return instance;
     }
 
-    public enum GameType {
-        LIGHTS_OUT, // 关灯
-        ONE_TO_ONE, // 一一对应
-        JIGSAW, // 拼图
-        REMOVE_ALL, // 方块消消乐
-        N_PUZZLE, // 数字华容道
-        CRAZY_CLICK, // 疯狂点击
-        AVOID_WHITE_BLOCK, // 别踩白块
-        SUDOKU, // 数独
-        QUICK_REACTION, // 快速反应
-        HANOI_TOWER, // 汉诺塔
-        CARD_MEMORY, // 记忆翻牌
-        THE_2048, // 2048
-        MAKE_A_LINE, // 宾果消消乐
-        GREEDY_SNAKE, // 贪吃蛇
-        TETRIS; // 俄罗斯方块
-
-        public String toName() {
-            return name().replace("_", " ");
-        }
-    }
-
     @Override
     public void onLoad() {
         instance = this;
-        pluginConfigFolderPath = this.getDataFolder().getPath();
-        roomConfigFolderPath = this.getDataFolder().getPath() + "/room/";
+
+        for (CSwitchGameType gameType : CSwitchGameType.values()) {
+            gameTypePrefix.put(gameType, gameTypePrefixConfig.getString(gameType.toName()));
+        }
     }
 
     @Override
     public void onEnable() {
         long start = new Date().getTime();
+        pluginConfigFolderPath = this.getDataFolder().getPath();
+        roomConfigFolderPath = pluginConfigFolderPath + "/room/";
+
         this.getLogger().info(PREFIX + "  §d加载中。。。§e|作者：Champrin");
         this.getLogger().info(PREFIX + "  §e ==> Champrin的第§c" + PLUGIN_No + "§e款插件/小游戏 " + GAME_NAME + "！");
         this.getServer().getPluginManager().registerEvents(this, this);
-        this.LoadConfig();
+        this.LoadPluginConfig();
         this.LoadRoomConfig();
         new MetricsLite(this, 6865);
         this.getLogger().info(PREFIX + "  §d已加载完毕。。。");
@@ -95,267 +82,203 @@ TODO
         RoomManager.serverStop();
     }
 
-    public void LoadConfig() {
-        this.getLogger().info("-配置文件加载中...");
+    public void LoadPluginConfig() {
+        this.getLogger().info("-插件配置文件加载中...");
 
-        File file = new File(roomConfigFolderPath);
-        if (!file.exists()) {
-            if (!file.mkdirs()) {
-                this.getServer().getLogger().info("文件夹创建失败");
-            }
-        }
+        ConfigManager.loadConfig("setupRoomTip");
+        ConfigManager.loadConfig("command");
+        ConfigManager.loadConfig("gameTip");
+        ConfigManager.loadConfig("gameRule");
+        ConfigManager.loadConfig("gameTypePrefix");
+
+        this.getLogger().info("-插件配置文件加载完毕。");
     }
 
     public void LoadRoomConfig() {
         this.getLogger().info("-房间信息加载中...");
-        File file = new File(roomConfigFolderPath);
-        File[] files = file.listFiles();
+        // 加载房间配置文件所在文件夹
+        File folder = new File(roomConfigFolderPath);
+        if (!folder.exists()) {
+            if (!folder.mkdirs()) {
+                this.getServer().getLogger().info("文件夹创建失败");
+            }
+        }
+        // 加载所有的房间配置文件
+        File[] files = folder.listFiles();
         if (files != null) {
-            for (File FILE : files) {
-                if (FILE.isFile()) {
-                    Config room = new Config(FILE, Config.YAML);
-                    String FileName = FILE.getName().substring(0, FILE.getName().lastIndexOf("."));
-                    RoomManager.addRoomConfig(FileName, new LinkedHashMap<>(room.getAll()));
-                    if ("true".equals(room.get("state"))) {
-                        RoomManager.setRoomData(FileName);
-                        this.getLogger().info("   房间§b" + FileName + "§r加载完成");
+            for (File file : files) {
+                if (file.isFile()) {
+                    Config roomConfig = new Config(file, Config.YAML);
+                    String roomID = roomConfig.getString(RoomConfigKey.ROOM_ID.toConfigKey());
+                    RoomManager.addRoomConfig(roomID, roomConfig);
+                    if (roomConfig.getBoolean(RoomConfigKey.SETUP_FINISH.toConfigKey())) {
+                        RoomManager.addAvailableRoom(roomID);
+                        this.getLogger().info("   房间§b" + roomID + "§r准备完成");
                     }
-
                 }
             }
         }
-        this.getLogger().info("-房间信息加载完毕...");
+        this.getLogger().info("-房间信息加载完毕。");
     }
 
+    /**
+     * 发送设置房间时的提示信息
+     *
+     * @param gameType 游戏类型
+     * @param sender   接收提示信息者
+     */
+    public void sendSetupRoomTip(String gameType, CommandSender sender) {
+        sender.sendMessage(setupRoomTipConfig.getString(LanguageConfigKey.SETUP_FIRST_TIP.toConfigKey()));
 
-    public void SetRoomTip(String type, CommandSender sender) {
-        //TODO
-        Config settingRoomTip = new Config("FILE", Config.YAML);
-
-        sender.sendMessage(settingRoomTip.getString("FirstTip"));
-
-        List<String> tipList = settingRoomTip.getStringList(type);
+        List<String> tipList = setupRoomTipConfig.getStringList(gameType);
         for (String tip : tipList) {
             sender.sendMessage(tip);
         }
 
-        sender.sendMessage(settingRoomTip.getString("LastTip"));
+        sender.sendMessage(setupRoomTipConfig.getString(LanguageConfigKey.SETUP_LAST_TIP.toConfigKey()));
     }
 
     @EventHandler
     @SuppressWarnings("unused")
     public void onBlockBreak(BlockBreakEvent event) {
-        Player p = event.getPlayer();
-        Block block = event.getBlock();
-        if (setters.containsKey(p.getName())) {
+        Player player = event.getPlayer();
+        if (setters.containsKey(player.getName())) {
             event.setCancelled(true);
 
-            String room_name = setters.get(p.getName()).get("room_name");
-            Config room = RoomManager.getRoomConfigFile(room_name);
+            Block block = event.getBlock();
+
+            String roomName = setters.get(player.getName()).get("room_name");
+            Config roomConfig = RoomManager.getRoomConfig(roomName);
 
             int x = (int) Math.round(Math.floor(block.x));
             int y = (int) Math.round(Math.floor(block.y));
             int z = (int) Math.round(Math.floor(block.z));
-            String xyz = x + "+" + y + "+" + z;
+            String xyz = x + "," + y + "," + z;
 
-            int step = Integer.parseInt(setters.get(p.getName()).get("step"));
-            switch (setters.get(p.getName()).get("gameName")) {
-                case "CrazyClick":
-                    switch (step) {
-                        case 1:
-                            room.set("pos1", xyz);
-                            room.set("pos2", xyz);
-                            room.set("direction", "x+");
-                            room.set("area", 1);//面积
-                            room.save();
-                            p.sendMessage(">>  请设置游戏介绍木牌");
-                            setters.get(p.getName()).put("step", String.valueOf(step + 1));
+            int step = Integer.parseInt(setters.get(player.getName()).get("step"));
+
+            switch (step) {
+                case 1:
+                    roomConfig.set(RoomConfigKey.ARENA_POINT1.toConfigKey(), xyz);
+
+                    setters.get(player.getName()).put(RoomConfigKey.ARENA_POINT1.toConfigKey(), xyz);
+
+                    switch (setters.get(player.getName()).get("gameName")) {
+                        case "CrazyClick":
+                            roomConfig.set(RoomConfigKey.ARENA_POINT2.toConfigKey(), xyz);
+                            roomConfig.set(RoomConfigKey.DIRECTION.toConfigKey(), Room.Direction.X_PLUS.toString());
+                            roomConfig.set(RoomConfigKey.AREA.toConfigKey(), 1);
+                            roomConfig.set(RoomConfigKey.LENGTH.toConfigKey(), 1);
+                            roomConfig.set(RoomConfigKey.WIDTH.toConfigKey(), 1);
+
+                            setters.get(player.getName()).put("step", String.valueOf(step + 2));
+                            player.sendMessage(setupRoomTipConfig.getString(LanguageConfigKey.SETUP_RULE_POINT.toConfigKey()));
                             break;
-                        case 2:
-                            if (block.getId() == Block.SIGN_POST || block.getId() == Block.WALL_SIGN) {
-                                room.set("rule_pos", xyz);
-                                room.save();
-                                p.sendMessage(">>  请设置加入游戏木牌");
-                                setters.get(p.getName()).put("step", String.valueOf(step + 1));
-                            } else {
-                                setters.get(p.getName()).put("step", "2");
-                                p.sendMessage(">>  请破坏木牌");
-                            }
+                        case "Sudoku":
+                            setters.get(player.getName()).put("step", String.valueOf(step + 1));
+                            player.sendMessage(setupRoomTipConfig.getString(LanguageConfigKey.SETUP_STEP2_TIP_SUDOKU.toConfigKey()));
                             break;
-                        case 3:
-                            if (block.getId() == Block.SIGN_POST || block.getId() == Block.WALL_SIGN) {
-                                room.set("button_pos", xyz);
-                                room.set("state", "true");
-                                room.set("room_world", block.level.getName());
-                                room.save();
-                                RoomManager.addRoomConfig(room_name, (LinkedHashMap<String, Object>) room.getAll());
-                                RoomManager.setRoomData(room_name);
-                                setters.remove(p.getName());
-                                p.sendMessage(">>  房间设置已完成");
-                            } else {
-                                setters.get(p.getName()).put("step", "3");
-                                p.sendMessage(">>  请破坏木牌");
-                            }
+                        default:
+                            setters.get(player.getName()).put("step", String.valueOf(step + 1));
+                            player.sendMessage(setupRoomTipConfig.getString(LanguageConfigKey.SETUP_ARENA_POINT2.toConfigKey()));
                             break;
+
                     }
                     break;
-                case "Sudoku":
-                    switch (step) {
-                        case 1:
-                            setters.get(p.getName()).put("pos1", xyz);
-                            p.sendMessage(">>  请在刚刚破坏的方块的右边,再破坏一个方块,用于判断位置,保证两个方块在一条直线");
-                            setters.get(p.getName()).put("step", String.valueOf(step + 1));
-                            break;
-                        case 2:
-                            p.sendMessage(">>  请设置游戏介绍木牌");
+                case 2:
+                    roomConfig.set(RoomConfigKey.ARENA_POINT2.toConfigKey(), xyz);
 
-                            String[] pos1 = setters.get(p.getName()).get("pos1").split("\\+");
-                            String[] pos2 = xyz.split("\\+");
+                    String[] pos1 = setters.get(player.getName()).get(RoomConfigKey.ARENA_POINT1.toConfigKey()).split(",");
+                    String[] pos2 = xyz.split(",");
 
-                            String d = "";
-                            if (pos1[2].equals(pos2[2]) && Integer.parseInt(pos1[0]) < Integer.parseInt(pos2[0]))//从pos1开始运作
-                            {
-                                d = "x+";
-                                room.set("pos1", (Integer.parseInt(pos1[0]) - 6) + "+" + (Integer.parseInt(pos1[1]) + 12) + "+" + Integer.parseInt(pos1[2]));
-                                room.set("pos2", (Integer.parseInt(pos1[0]) + 6) + "+" + (Integer.parseInt(pos1[1])) + "+" + Integer.parseInt(pos1[2]));
-                            } else if (pos1[2].equals(pos2[2]) && Integer.parseInt(pos1[0]) > Integer.parseInt(pos2[0])) {
-                                d = "x-";
-                                room.set("pos1", (Integer.parseInt(pos1[0]) + 6) + "+" + (Integer.parseInt(pos1[1]) + 12) + "+" + Integer.parseInt(pos1[2]));
-                                room.set("pos2", (Integer.parseInt(pos1[0]) - 6) + "+" + (Integer.parseInt(pos1[1])) + "+" + Integer.parseInt(pos1[2]));
-                            } else if (pos1[0].equals(pos2[0]) && Integer.parseInt(pos1[2]) < Integer.parseInt(pos2[2])) {
-                                d = "z+";
-                                room.set("pos1", Integer.parseInt(pos1[0]) + "+" + (Integer.parseInt(pos1[1]) + 12) + "+" + (Integer.parseInt(pos1[2]) - 6));
-                                room.set("pos2", Integer.parseInt(pos1[0]) + "+" + (Integer.parseInt(pos1[1])) + "+" + (Integer.parseInt(pos1[2]) + 6));
-                            } else if (pos1[0].equals(pos2[0]) && Integer.parseInt(pos1[2]) > Integer.parseInt(pos2[2])) {
-                                d = "z-";
-                                room.set("pos1", Integer.parseInt(pos1[0]) + "+" + (Integer.parseInt(pos1[1]) + 12) + "+" + (Integer.parseInt(pos1[2]) + 6));
-                                room.set("pos2", Integer.parseInt(pos1[0]) + "+" + (Integer.parseInt(pos1[1])) + "+" + (Integer.parseInt(pos1[2]) - 6));
-                            }
-                            room.set("direction", d);
-                            room.set("area", 0);//面积
-                            room.save();
-                            setters.get(p.getName()).put("step", String.valueOf(step + 1));
-                            break;
-                        case 3:
-                            if (block.getId() == Block.SIGN_POST || block.getId() == Block.WALL_SIGN) {
-                                room.set("rule_pos", xyz);
-                                room.save();
-                                p.sendMessage(">>  请设置加入游戏木牌");
-                                setters.get(p.getName()).put("step", String.valueOf(step + 1));
-                            } else {
-                                setters.get(p.getName()).put("step", "3");
-                                p.sendMessage(">>  请破坏木牌");
-                            }
-                            break;
-                        case 4:
-                            if (block.getId() == Block.SIGN_POST || block.getId() == Block.WALL_SIGN) {
-                                room.set("button_pos", xyz);
-                                room.set("state", "true");
-                                room.set("room_world", block.level.getName());
-                                room.save();
-                                RoomManager.addRoomConfig(room_name, (LinkedHashMap<String, Object>) room.getAll());
-                                RoomManager.setRoomData(room_name);
-                                setters.remove(p.getName());
-                                p.sendMessage(">>  房间设置已完成");
-                            } else {
-                                setters.get(p.getName()).put("step", "4");
-                                p.sendMessage(">>  请破坏木牌");
-                            }
-                            break;
+                    Room.Direction direction;
+                    int width;
+                    //TODO 设定左下角为点一 右上角为点二
+                    // x+/x- z+/z- 为朝向不同
+                    if ("Sudoku".equals(setters.get(player.getName()).get("gameName"))) {
+                        if (pos1[2].equals(pos2[2]) && Integer.parseInt(pos1[0]) < Integer.parseInt(pos2[0])) {
+                            direction = Room.Direction.X_PLUS;
+                            roomConfig.set(RoomConfigKey.ARENA_POINT1.toConfigKey(), (Integer.parseInt(pos1[0]) - 6) + "," + (Integer.parseInt(pos1[1]) + 12) + "," + Integer.parseInt(pos1[2]));
+                            roomConfig.set(RoomConfigKey.ARENA_POINT2.toConfigKey(), (Integer.parseInt(pos1[0]) + 6) + "," + (Integer.parseInt(pos1[1])) + "," + Integer.parseInt(pos1[2]));
+                        } else if (pos1[2].equals(pos2[2]) && Integer.parseInt(pos1[0]) > Integer.parseInt(pos2[0])) {
+                            direction = Room.Direction.X_MINUS;
+                            roomConfig.set(RoomConfigKey.ARENA_POINT1.toConfigKey(), (Integer.parseInt(pos1[0]) + 6) + "," + (Integer.parseInt(pos1[1]) + 12) + "," + Integer.parseInt(pos1[2]));
+                            roomConfig.set(RoomConfigKey.ARENA_POINT2.toConfigKey(), (Integer.parseInt(pos1[0]) - 6) + "," + (Integer.parseInt(pos1[1])) + "," + Integer.parseInt(pos1[2]));
+                        } else if (pos1[0].equals(pos2[0]) && Integer.parseInt(pos1[2]) < Integer.parseInt(pos2[2])) {
+                            direction = Room.Direction.Z_PLUS;
+                            roomConfig.set(RoomConfigKey.ARENA_POINT1.toConfigKey(), Integer.parseInt(pos1[0]) + "," + (Integer.parseInt(pos1[1]) + 12) + "," + (Integer.parseInt(pos1[2]) - 6));
+                            roomConfig.set(RoomConfigKey.ARENA_POINT2.toConfigKey(), Integer.parseInt(pos1[0]) + "," + (Integer.parseInt(pos1[1])) + "," + (Integer.parseInt(pos1[2]) + 6));
+                        } else { //(pos1[0].equals(pos2[0]) && Integer.parseInt(pos1[2]) > Integer.parseInt(pos2[2]) == true
+                            direction = Room.Direction.Z_MINUS;
+                            roomConfig.set(RoomConfigKey.ARENA_POINT1.toConfigKey(), Integer.parseInt(pos1[0]) + "," + (Integer.parseInt(pos1[1]) + 12) + "," + (Integer.parseInt(pos1[2]) + 6));
+                            roomConfig.set(RoomConfigKey.ARENA_POINT2.toConfigKey(), Integer.parseInt(pos1[0]) + "," + (Integer.parseInt(pos1[1])) + "," + (Integer.parseInt(pos1[2]) - 6));
+                        }
+                        width = 0;
+                    } else {
+                        if (pos1[2].equals(pos2[2]) && Integer.parseInt(pos1[0]) < Integer.parseInt(pos2[0])) {
+                            direction = Room.Direction.X_PLUS;
+                            width = Integer.parseInt(pos2[0]) - Integer.parseInt(pos1[0]) + 1;
+                        } else if (pos1[2].equals(pos2[2]) && Integer.parseInt(pos1[0]) > Integer.parseInt(pos2[0])) {
+                            direction = Room.Direction.X_MINUS;
+                            width = Integer.parseInt(pos1[0]) - Integer.parseInt(pos2[0]) + 1;
+                        } else if (pos1[0].equals(pos2[0]) && Integer.parseInt(pos1[2]) < Integer.parseInt(pos2[2])) {
+                            direction = Room.Direction.Z_PLUS;
+                            width = Integer.parseInt(pos2[2]) - Integer.parseInt(pos1[2]) + 1;
+                        } else { //(pos1[0].equals(pos2[0]) && Integer.parseInt(pos1[2]) > Integer.parseInt(pos2[2]) == true
+                            direction = Room.Direction.Z_MINUS;
+                            width = Integer.parseInt(pos1[2]) - Integer.parseInt(pos2[2]) + 1;
+                        }
+                    }
+                    int length = Integer.parseInt(pos2[1]) - Integer.parseInt(pos1[1]) + 1;
+                    int area = length * width;
+                    roomConfig.set(RoomConfigKey.DIRECTION.toConfigKey(), direction.toString());
+                    roomConfig.set(RoomConfigKey.AREA.toConfigKey(), area);
+                    roomConfig.set(RoomConfigKey.LENGTH.toConfigKey(), length);
+                    roomConfig.set(RoomConfigKey.WIDTH.toConfigKey(), width);
+
+                    setters.get(player.getName()).put("step", String.valueOf(step + 1));
+                    player.sendMessage(setupRoomTipConfig.getString(LanguageConfigKey.SETUP_RULE_POINT.toConfigKey()));
+                    break;
+                case 3:
+                    if (block.getId() == BlockID.SIGN_POST || block.getId() == BlockID.WALL_SIGN) {
+                        roomConfig.set(RoomConfigKey.RULE_POINT.toConfigKey(), xyz);
+
+                        setters.get(player.getName()).put("step", String.valueOf(step + 1));
+                        player.sendMessage(setupRoomTipConfig.getString(LanguageConfigKey.SETUP_JOIN_POINT.toConfigKey()));
+                    } else {
+                        player.sendMessage(setupRoomTipConfig.getString(LanguageConfigKey.SETUP_BREAK_SIGN.toConfigKey()));
                     }
                     break;
-                default:
-                    switch (step) {
-                        case 1:
-                            setters.get(p.getName()).put("pos1", xyz);
-                            room.set("pos1", xyz);
-                            room.save();
-                            p.sendMessage(">>  请设置点2");
-                            setters.get(p.getName()).put("step", String.valueOf(step + 1));
-                            break;
-                        case 2:
-                            room.set("pos2", xyz);
-                            p.sendMessage(">>  请设置游戏介绍木牌");
+                case 4:
+                    if (block.getId() == BlockID.SIGN_POST || block.getId() == BlockID.WALL_SIGN) {
+                        roomConfig.set(RoomConfigKey.JOIN_POINT.toConfigKey(), xyz);
+                        roomConfig.set(RoomConfigKey.SETUP_FINISH.toConfigKey(), true);
+                        roomConfig.set(RoomConfigKey.ROOM_WORLD.toConfigKey(), block.level.getName());
 
-                            String[] pos1 = setters.get(p.getName()).get("pos1").split("\\+");
-                            String[] pos2 = xyz.split("\\+");
+                        RoomManager.addRoomConfig(roomName, roomConfig);
+                        RoomManager.addAvailableRoom(roomName);
 
-                            String d = null;
-                            int width = 0;
-
-                            // x+/x- z+/z- 为朝向不同
-                            if (pos1[2].equals(pos2[2]) && Integer.parseInt(pos1[0]) < Integer.parseInt(pos2[0]))//从pos1开始运作
-                            {
-                                d = "x+";
-                                width = Math.abs(Math.max(Integer.parseInt(pos1[0]), Integer.parseInt(pos2[0])) - Math.min(Integer.parseInt(pos1[0]), Integer.parseInt(pos2[0]))) + 1;
-                            } else if (pos1[2].equals(pos2[2]) && Integer.parseInt(pos1[0]) > Integer.parseInt(pos2[0])) {
-                                d = "x-";
-                                width = Math.abs(Math.max(Integer.parseInt(pos1[0]), Integer.parseInt(pos2[0])) - Math.min(Integer.parseInt(pos1[0]), Integer.parseInt(pos2[0]))) + 1;
-                            } else if (pos1[0].equals(pos2[0]) && Integer.parseInt(pos1[2]) < Integer.parseInt(pos2[2])) {
-                                d = "z+";
-                                width = Math.abs(Math.max(Integer.parseInt(pos1[2]), Integer.parseInt(pos2[2])) - Math.min(Integer.parseInt(pos1[2]), Integer.parseInt(pos2[2]))) + 1;
-                            } else if (pos1[0].equals(pos2[0]) && Integer.parseInt(pos1[2]) > Integer.parseInt(pos2[2])) {
-                                d = "z-";
-                                width = Math.abs(Math.max(Integer.parseInt(pos1[2]), Integer.parseInt(pos2[2])) - Math.min(Integer.parseInt(pos1[2]), Integer.parseInt(pos2[2]))) + 1;
-                            }
-                            int length = Math.abs(Math.min(Integer.parseInt(pos1[1]), Integer.parseInt(pos2[1])) - Math.max(Integer.parseInt(pos1[1]), Integer.parseInt(pos2[1]))) + 1;
-                            int area = length * width;
-                            room.set("direction", d);
-                            room.set("area", area);//面积
-                            room.set("length", length);
-                            room.set("width", width);
-                            room.save();
-                            setters.get(p.getName()).put("step", String.valueOf(step + 1));
-                            break;
-                        case 3:
-                            if (block.getId() == Block.SIGN_POST || block.getId() == Block.WALL_SIGN) {
-                                room.set("rule_pos", xyz);
-                                room.save();
-                                p.sendMessage(">>  请设置加入游戏木牌");
-                                setters.get(p.getName()).put("step", String.valueOf(step + 1));
-                            } else {
-                                setters.get(p.getName()).put("step", "3");
-                                p.sendMessage(">>  请破坏木牌");
-                            }
-                            break;
-                        case 4:
-                            if (block.getId() == Block.SIGN_POST || block.getId() == Block.WALL_SIGN) {
-                                room.set("button_pos", xyz);
-                                room.set("state", "true"); //设置完毕的状态
-                                room.set("room_world", block.level.getName());
-                                room.save();
-                                RoomManager.addRoomConfig(room_name, (LinkedHashMap<String, Object>) room.getAll());
-                                RoomManager.setRoomData(room_name);
-                                setters.remove(p.getName());
-                                p.sendMessage(">>  房间设置已完成");
-                            } else {
-                                setters.get(p.getName()).put("step", "4");
-                                p.sendMessage(">>  请破坏木牌");
-                            }
-                            break;
+                        setters.remove(player.getName());
+                        player.sendMessage(setupRoomTipConfig.getString(LanguageConfigKey.SETUP_FINISH.toConfigKey()));
+                    } else {
+                        player.sendMessage(setupRoomTipConfig.getString(LanguageConfigKey.SETUP_BREAK_SIGN.toConfigKey()));
                     }
                     break;
             }
-        } else if (block.getId() == Block.SIGN_POST || block.getId() == Block.WALL_SIGN) {
-            BlockEntity tile = event.getBlock().level.getBlockEntity(block);
-            if (tile instanceof BlockEntitySign) {
-                String text = ((BlockEntitySign) tile).getText()[2];
-                if (text.equals("§a点击加入游戏") || text.equals("§a点击查看游戏介绍")) {
-                    event.setCancelled(true);
-                }
-            }
+            roomConfig.save();
         }
     }
 
     @EventHandler
     @SuppressWarnings("unused")
-    public void onJoin(PlayerQuitEvent event) {
+    public void onQuit(PlayerQuitEvent event) {
         setters.remove(event.getPlayer().getName());
     }
 
     @EventHandler
     @SuppressWarnings("unused")
     public void onChat(PlayerChatEvent event) {
+        //TODO 换一种方式
         Player player = event.getPlayer();
         Room room = RoomManager.getPlayerRoom(player);
         if (room == null) return;
@@ -369,11 +292,11 @@ TODO
     @EventHandler
     @SuppressWarnings("unused")
     public void onTouch(PlayerInteractEvent event) {
-        Player player = event.getPlayer();
         Block block = event.getBlock();
         if (block.getId() == Block.SIGN_POST || block.getId() == Block.WALL_SIGN) {
             BlockEntity sign = event.getBlock().level.getBlockEntity(block);
             if (sign instanceof BlockEntitySign) {
+                Player player = event.getPlayer();
                 //TODO 重新写逻辑
                 if (((BlockEntitySign) sign).getText()[2].equals("§a点击加入游戏")) {
                     event.setCancelled(true);
@@ -392,25 +315,18 @@ TODO
                     }
                 } else if (((BlockEntitySign) sign).getText()[2].equals("§a点击查看游戏介绍")) {
                     event.setCancelled(true);
-                    String gameType = ((BlockEntitySign) sign).getText()[1];
-                    String text = getRulePageTitle(gameType) + "§7§r---§c§l游戏玩法" + "\n" + getGameRule(gameType);
-                    FormWindowSimple window = new FormWindowSimple(gameType + "§6游戏介绍", text);
+                    FormWindowSimple window = new FormWindowSimple(
+                            gameRuleConfig.getString(LanguageConfigKey.RULE_FORM_WINDOW_TITLE.toConfigKey()),
+                            gameRuleConfig.getString(LanguageConfigKey.RULE_FORM_WINDOW_CONTENT.toConfigKey())
+                    );
                     player.showFormWindow(window);
                 }
             }
         }
     }
 
-    public static String getRulePageTitle(String game_type) {
-        return "§f" + game_type + "§7>>§6§l" + getChineseName(game_type) + "";
-    }
-
     private String getGameRule(String gameType) {
-        //TODO
-        Config gameRuleConfig = new Config("FILE", Config.YAML);
-
         StringBuilder gameRule = new StringBuilder();
-
         List<String> tipList = gameRuleConfig.getStringList(gameType);
         for (String tip : tipList) {
             gameRule.append(tip).append("\n");
@@ -419,194 +335,127 @@ TODO
         return gameRule.toString();
     }
 
-    public void Op_HelpMessage(CommandSender sender) {
-        //TODO
-    }
-
-    public String getGameFile() {
-        StringBuilder gameFile = new StringBuilder("    ");
-        int a = 0;
-        for (Map.Entry<Integer, String> map : Game.entrySet()) {
-            gameFile.append(map.getKey()).append(":").append(getChineseName(map.getValue())).append(",");
-            a = a + 1;
-            if (a % 4 == 0) {
-                gameFile.append("\n").append("    ");
+    public void sendCommandHelp(CommandSender sender) {
+        // 生成所有游戏类型的自定义别名组成的字符串
+        StringBuilder gameList = new StringBuilder();
+        int cnt = 0;
+        for (CSwitchGameType gameType : CSwitchGameType.values()) {
+            gameTypePrefix.put(gameType, gameTypePrefixConfig.getString(gameType.toName()));
+            gameList.append("[").append(gameType.ordinal()).append("]").append(":").append(gameTypePrefix.get(gameType)).append(",");
+            ++cnt;
+            if (cnt % 3 == 0) {
+                gameList.append("\n\t");
             }
         }
-        return gameFile.toString();
+        // 组合自定义指令提示信息，并发送
+        List<String> tipList = commandConfig.getStringList(LanguageConfigKey.OP_HELP_COMMAND.toConfigKey());
+        StringBuilder commandHelp = new StringBuilder();
+        for (String tip : tipList) {
+            commandHelp.append(tip).append("\n");
+        }
+        sender.sendMessage(commandHelp.toString().replace("{GAME_LIST}", gameList.toString()));
     }
 
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if ("cs".equals(command.getName())) {
             if (args.length < 1) {
-                this.Op_HelpMessage(sender);
+                this.sendCommandHelp(sender);
             } else {
                 switch (args[0]) {
                     case "set":
                         if (sender instanceof Player) {
                             if (args.length < 2) {
-                                sender.sendMessage(">  参数不足");
+                                sender.sendMessage(commandConfig.getString(LanguageConfigKey.NOT_ENOUGH_PARAMETER.toConfigKey()));
                                 break;
                             }
                             if (!RoomManager.isExistRoomConfig(args[1])) {
-                                sender.sendMessage(">  房间不存在");
+                                sender.sendMessage(commandConfig.getString(LanguageConfigKey.NOT_EXIST_ROOM.toConfigKey()));
                                 break;
                             }
                             Room room = RoomManager.getRoom(args[1]);
                             if (room != null) {
                                 if (room.isStarted || room.gamePlayer != null) {
-                                    sender.sendMessage(">  房间正在游戏中");
+                                    sender.sendMessage(commandConfig.getString(LanguageConfigKey.NOT_FREE_ROOM.toConfigKey()));
                                     break;
                                 }
                             }
                             LinkedHashMap<String, String> list = new LinkedHashMap<>();
-                            list.put("gameName", (String) RoomManager.getRoomConfig(args[1]).get("game_type"));
+                            list.put("gameName", (String) RoomManager.getRoomData(args[1]).get("game_type"));
                             list.put("room_name", args[1]);
                             list.put("step", String.valueOf(1));
                             setters.put(sender.getName(), list);
-                            sender.sendMessage(">  房间" + args[1] + "正在设置");
-                            this.SetRoomTip((String) RoomManager.getRoomConfig(args[1]).get("game_type"), sender);
+                            sender.sendMessage(commandConfig.getString(LanguageConfigKey.SETUP_ROOM.toConfigKey().replace("{ROOM_ID}", args[1])));
+                            this.sendSetupRoomTip((String) RoomManager.getRoomData(args[1]).get("game_type"), sender);
 
                             RoomManager.removeSigns(args[1]);
                         } else {
-                            sender.sendMessage(">  请在游戏中运行");
+                            sender.sendMessage(commandConfig.getString(LanguageConfigKey.COMMAND_USE_IN_TERMINAL.toConfigKey()));
                         }
                         break;
                     case "add":
                         if (args.length < 3) {
-                            sender.sendMessage(">  参数不足");
+                            sender.sendMessage(commandConfig.getString(LanguageConfigKey.NOT_ENOUGH_PARAMETER.toConfigKey()));
                             break;
                         }
                         if (RoomManager.isExistRoomConfig(args[1])) {
-                            sender.sendMessage(">  房间已存在");
+                            sender.sendMessage(commandConfig.getString(LanguageConfigKey.EXIST_ROOM.toConfigKey()));
                             break;
                         }
-                        if (!this.Game.containsKey(Integer.parseInt(args[2]))) {
-                            sender.sendMessage(">  游戏类型输入错误");
+                        if (Integer.parseInt(args[2]) >= CSwitchGameType.values().length) {
+                            sender.sendMessage(commandConfig.getString(LanguageConfigKey.WRONG_INPUT_SERIAL_NUMBER.toConfigKey()));
                             break;
                         }
-                        Config a = new Config(roomConfigFolderPath + args[1] + ".yml", Config.YAML);
-                        a.set("game_type", Game.get(Integer.parseInt(args[2])));
-                        a.set("state", "false");
-                        a.set("arena", false);
-                        a.set("room_world", " ");
-                        a.set("start_time", "5");
 
-                        switch (Game.get(Integer.parseInt(args[2]))) {
-                            case "AvoidWhiteBlock":
-                                a.set("times", 15);
+                        CSwitchGameType gameType = CSwitchGameType.values()[Integer.parseInt(args[2])];
+
+                        Config roomConfig = new Config(roomConfigFolderPath + args[1] + ".yml", Config.YAML);
+                        roomConfig.set(RoomConfigKey.GAME_TYPE.toConfigKey(), gameType.toString());
+                        roomConfig.set(RoomConfigKey.SETUP_FINISH.toConfigKey(), false);
+                        roomConfig.set(RoomConfigKey.PREPARE_TIME.toConfigKey(), 5);
+
+                        switch (gameType) {
+                            case AVOID_WHITE_BLOCK:
+                                roomConfig.set(RoomConfigKey.ADDITION.toConfigKey(), Collections.singletonList(15));
                                 break;
-                            case "CrazyClick":
-                                a.set("game_time", 20);
+                            case CRAZY_CLICK:
+                                roomConfig.set(RoomConfigKey.GAME_TIME.toConfigKey(), 20);
                                 break;
-                            case "BeFaster":
-                                a.set("game_time", 60);
+                            case QUICK_REACTION:
+                                roomConfig.set(RoomConfigKey.GAME_TIME.toConfigKey(), 60);
                                 break;
                         }
-                        a.save();
-                        RoomManager.addRoomConfig(args[1], (LinkedHashMap<String, Object>) a.getAll());
-                        sender.sendMessage(">  房间" + args[1] + "成功创建");
+                        roomConfig.save();
+
+                        RoomManager.addRoomConfig(args[1], roomConfig);
+                        sender.sendMessage(commandConfig.getString(LanguageConfigKey.SUCCESSFUL_CREATE_ROOM.toConfigKey()).replace("{ROOM_ID}", args[1]));
                         break;
                     case "del":
                         if (args.length < 2) {
-                            sender.sendMessage(">  参数不足");
+                            sender.sendMessage(commandConfig.getString(LanguageConfigKey.NOT_ENOUGH_PARAMETER.toConfigKey()));
                             break;
                         }
                         if (!RoomManager.isExistRoomConfig(args[1])) {
-                            sender.sendMessage(">  房间不存在");
+                            sender.sendMessage(commandConfig.getString(LanguageConfigKey.NOT_EXIST_ROOM.toConfigKey()));
                             break;
                         }
-                        boolean file = new File(roomConfigFolderPath + args[1] + ".yml").delete();
-                        if (file) {
+
+                        boolean isDeleted = new File(roomConfigFolderPath + args[1] + ".yml").delete();
+                        if (isDeleted) {
                             RoomManager.deleteRoom(args[1]);
                             this.setters.remove(sender.getName());
-                            sender.sendMessage(">  房间" + args[1] + "已成功删除");
+                            sender.sendMessage(commandConfig.getString(LanguageConfigKey.SUCCESSFUL_DELETE_ROOM.toConfigKey()).replace("{ROOM_ID}", args[1]));
                         } else {
-                            sender.sendMessage(">  房间" + args[1] + "删除失败");
+                            sender.sendMessage(commandConfig.getString(LanguageConfigKey.FAIL_DELETE_ROOM.toConfigKey()).replace("{ROOM_ID}", args[1]));
                         }
                         break;
                     case "help":
                     default:
-                        this.Op_HelpMessage(sender);
+                        this.sendCommandHelp(sender);
                         break;
                 }
             }
         }
-//        else if ("csrank".equals(command.getName())) {
-//            if (sender instanceof Player) {
-//                FormWindowSimple window = new FormWindowSimple("CSwitch排行榜", getRank());
-//                ((Player) sender).showFormWindow(window);
-//            } else {
-//                sender.sendMessage(">  请在游戏中运行");
-//            }
-//        }
         return true;
     }
-
-//    public String getRank() {
-//        StringBuilder rank = new StringBuilder("注:玩家名字前的数字代表耗时或分数\n   记录显示为000-player是暂无记录 \n");
-//        Map<String, Object> c = config.getAll();
-//        for (String m : c.keySet()) {
-//            String gameName = m;
-//            ArrayList<String> a = (ArrayList<String>) config.getList(gameName);
-//            gameName = getChineseName(gameName);
-//            for (int i = 0; i < 3; i++) {
-//                rank.append("\n").append("§l§6").append(gameName).append(":§r§f").append("第§l§c").append(i + 1).append("§r§f名:§f").append(a.get(i));
-//            }
-//            rank.append("\n");
-//        }
-//        return rank.toString();
-//    }
-
-    public static String getChineseName(String gameName) {
-        switch (gameName) {
-            case "LightsOut":
-                return "关灯";
-            case "OneToOne":
-                return "一一对应";
-            case "Jigsaw":
-                return "拼图";
-            case "RemoveAll":
-                return "方块消消乐";
-            case "OnOneLine":
-                return "宾果消消乐";
-            case "BlockPlay_4":
-                return "4X4方块华容道";
-            case "BlockPlay_3":
-                return "3X3方块华容道";
-            case "CrazyClick":
-                return "疯狂点击";
-            case "Sudoku":
-                return "数独";
-            case "C2048":
-                return "2048";
-            case "AvoidWhiteBlock":
-                return "别踩白块";
-            case "HanoiTower":
-                return "汉诺塔游戏";
-            case "BeFaster":
-                return "快速反应";
-            case "CardMemory":
-                return "颜色记忆";
-            default:
-                return null;
-        }
-    }
-//
-//    public void checkRank(String gameName, int spendTime, String gamer) {
-//        try {
-//            ArrayList<String> a = new ArrayList<>((Collection<? extends String>) config.get(gameName));
-//            for (int i = 0; i < 3; i++) {
-//                String[] in = a.get(i).split("-");
-//                if (in[0].equals("000") || Integer.parseInt(in[0]) > spendTime) {
-//                    a.set(i, spendTime + "-" + gamer);
-//                    break;
-//                }
-//            }
-//            config.set(gameName, a);
-//            config.save();
-//        } catch (Exception e) {
-//        }
-//    }
 }
 

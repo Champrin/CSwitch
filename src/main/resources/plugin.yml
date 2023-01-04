@@ -1,6 +1,6 @@
 name: CSwitch
-main: net.createlight.champrin.cswitch.CSwitch
-version: "3.1.0"
+main: cn.createlight.cswitch.CSwitch
+version: "3.2.0"
 api: ["1.0.8"]
 
 author: Champrin

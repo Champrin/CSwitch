@@ -1,5 +1,6 @@
 package cn.createlight.cswitch.game;
 
+import cn.createlight.cswitch.CSwitchGameType;
 import cn.nukkit.Player;
 import cn.nukkit.block.Block;
 import cn.nukkit.block.BlockID;
@@ -36,7 +37,7 @@ public class BlockPlay extends Game implements Listener {
     @EventHandler
     public void onTouch(PlayerInteractEvent event) {
         // 房间游戏条件限制
-        if (!this.gameType.equals("BlockPlay")) return;
+        if (this.gameType != CSwitchGameType.N_PUZZLE) return;
         if (this.room.isFinished) return;
         if (!this.room.isStarted) return;
         Player player = event.getPlayer();

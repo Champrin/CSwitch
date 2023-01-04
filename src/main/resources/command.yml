@@ -6,3 +6,17 @@ op-help-command:
   - ">  游戏类型:"
   - "\t{GAME_LIST}"
   - ">  [游戏序号]为 游戏类型前的数字,请正确填写"
+
+not-enough-parameter: ">  参数不足"
+not-exist-room: ">  房间不存在"
+exist-room: ">  房间已存在"
+not-free-room: ">  房间正在游戏中"
+
+wrong-input-serial-number: ">  游戏类型输入错误"
+
+command-use-in-terminal: ">  请在游戏中运行"
+
+setup-room: ">  房间{ROOM_ID}正在设置"
+successful-create-room: ">  房间{ROOM_ID}成功创建"
+successful-delete-room: ">  房间{ROOM_ID}已成功删除"
+fail-delete-room: ">  房间{ROOM_ID}删除失败"
