@@ -1,0 +1,24 @@
+name: CSwitch
+main: net.createlight.champrin.cswitch.CSwitch
+version: "3.1.0"
+api: ["1.0.8"]
+
+author: Champrin
+description: "CSwitch 单人游戏合集!"
+
+commands:
+  cs:
+    permission: CSwitch.command.op
+    usage: "/cs"
+    description: "§eCSwitch Helper"
+    aliases: []
+  csrank:
+    permission: CSwitch.command.true
+    usage: "/csrank"
+    description: "§eCSwitch 排行榜"
+    aliases: []
+permissions:
+  CSwitch.command.op:
+    default: op
+  CSwitch.command.true:
+    default: true
