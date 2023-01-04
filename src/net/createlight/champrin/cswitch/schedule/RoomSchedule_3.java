@@ -1,11 +1,12 @@
 package net.createlight.champrin.cswitch.schedule;
 
+
 import cn.nukkit.Player;
 import cn.nukkit.block.Block;
 import cn.nukkit.level.Level;
 import cn.nukkit.math.Vector3;
 import cn.nukkit.scheduler.Task;
-import net.createlight.champrin.cswitch.Room;
+import net.createlight.champrin.cswitch.room.Room;
 import net.createlight.champrin.cswitch.untils.Countdown;
 import net.createlight.champrin.cswitch.untils.TimeBlockElement;
 
@@ -46,7 +47,7 @@ public class RoomSchedule_3 extends Task {
             if (this.room.gamePlayer != null) {
                 this.startTime = startTime - 1;
                 Player p = room.gamePlayer;
-                p.sendPopup(new Countdown().countDown(startTime));
+                p.sendPopup(Countdown.countDown(startTime));
                 if (this.startTime <= 0) {
                     this.room.startGame();
                     this.spendTime = (int) room.data.get("game_time");
@@ -79,13 +80,13 @@ public class RoomSchedule_3 extends Task {
                 this.spendTime = (int) room.data.get("game_time");
             } else if (this.spendTime <= 0) {
                 room.gamePlayer.sendMessage("§f=======================");
-                room.gamePlayer.sendMessage(">>  §f你的得分: §6§l" + this.room.rank);
+                room.gamePlayer.sendMessage(">>  §f你的得分: §6§l" + this.room.point);
                 room.gamePlayer.sendMessage("§f=======================");
-                room.plugin.checkRank(room.gameTypeName, room.rank, room.gamePlayer.getName());
+                // room.plugin.checkRank(room.gameType, room.rank, room.gamePlayer.getName());
                 this.room.stopGame();
                 this.spendTime = (int) room.data.get("game_time");
             } else {
-                room.gamePlayer.sendPopup(room.gameTypeName + ">> §a§lRemaining time:§c" + spendTime + "s  §eYour point:§6" + this.room.rank);
+                room.gamePlayer.sendPopup(room.gameType + ">> §a§lRemaining time:§c" + spendTime + "s  §eYour point:§6" + this.room.point);
             }
         }
     }
@@ -96,9 +97,8 @@ public class RoomSchedule_3 extends Task {
         int z = zi;
         int y = new Random().nextInt(ya - yi + 1) + yi;
         switch (room.direction) {
-            case "x+", "x-" -> x = new Random().nextInt(xa - xi + 1) + xi;
-            case "z+", "z-" -> z = new Random().nextInt(za - zi + 1) + zi;
-            default -> throw new IllegalStateException("Unexpected value: " + room.direction);
+            case X_PLUS, X_MINUS -> x = new Random().nextInt(xa - xi + 1) + xi;
+            case Z_PLUS, Z_MINUS -> z = new Random().nextInt(za - zi + 1) + zi;
         }
         return new Vector3(x, y, z);
     }

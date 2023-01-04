@@ -1,4 +1,4 @@
-package net.createlight.champrin.cswitch;
+package net.createlight.champrin.cswitch.room;
 
 import cn.nukkit.AdventureSettings;
 import cn.nukkit.Player;
@@ -18,7 +18,8 @@ import cn.nukkit.item.Item;
 import cn.nukkit.level.Level;
 import cn.nukkit.math.Vector3;
 import cn.nukkit.nbt.tag.CompoundTag;
-import net.createlight.champrin.cswitch.Game.*;
+import net.createlight.champrin.cswitch.CSwitch;
+import net.createlight.champrin.cswitch.game.*;
 import net.createlight.champrin.cswitch.schedule.RoomSchedule;
 import net.createlight.champrin.cswitch.schedule.RoomSchedule_2;
 import net.createlight.champrin.cswitch.schedule.RoomSchedule_3;
@@ -28,15 +29,15 @@ import java.util.*;
 
 public class Room implements Listener {
 
-    public CSwitch plugin;
+    public CSwitch plugin = CSwitch.getInstance();
 
     public String id; // 房间id
 
     public LinkedHashMap<String, Object> data; // 房间数据
 
-    public Game gameType; // 游戏类型对象
+    public Game gameTypeObject; // 游戏类型对象
 
-    public String gameTypeName; // 游戏类型名
+    public CSwitch.GameType gameType; // 游戏类型名
 
     public Player gamePlayer = null; // 游戏玩家
 
@@ -46,32 +47,33 @@ public class Room implements Listener {
 
     public boolean isFinished = false; // 是否完成游戏
 
-    public int rank = 0;
+    public boolean isFailed = false; // 是否游戏失败 //TODO
+
+    public int point = 0;
 
     public Level level; // 房间世界
 
     public int xMin, xMax, yMin, yMax, zMin, zMax; // 游戏区域
 
-    public String direction; // 游戏区域方向
-
     //TODO
-    public enum Direction{
-        X_PLUS,
-        X_MINUS,
+    public enum Direction {
+        X_PLUS, // x+
+        X_MINUS, // x-
         Z_PLUS,
         Z_MINUS,
     }
 
-    public Room(String id, CSwitch plugin) {
-        this.plugin = plugin;
+    public Direction direction; // 游戏区域方向
+
+    public Room(String id) {
         this.id = id;
-        this.data = plugin.roomsConfig.get(id);
-        this.gameTypeName = (String) data.get("game_type");
+        this.data = RoomManager.roomsConfig.get(id);
+        this.gameType = CSwitch.GameType.valueOf((String) data.get(RoomConfig.GAME_TYPE.toConfigKey()));
 
         String[] p1 = ((String) data.get("pos1")).split("\\+");
         String[] p2 = ((String) data.get("pos2")).split("\\+");
 
-        this.direction = (String) data.get("direction");
+        this.direction = Direction.valueOf((String) data.get("direction"));
         this.level = this.plugin.getServer().getLevelByName((String) data.get("room_world"));
         //TODO 创建房间时就写好min和max
         this.xMin = (Math.min(Integer.parseInt(p1[0]), Integer.parseInt(p2[0])));
@@ -81,36 +83,37 @@ public class Room implements Listener {
         this.zMin = (Math.min(Integer.parseInt(p1[2]), Integer.parseInt(p2[2])));
         this.zMax = (Math.max(Integer.parseInt(p1[2]), Integer.parseInt(p2[2])));
 
-        switch (gameTypeName) {
-            case "CrazyClick" ->
+        switch (gameType) {
+            case CRAZY_CLICK ->
                     this.plugin.getServer().getScheduler().scheduleRepeatingTask(new RoomSchedule_2(this), 20);
-            case "BeFaster" ->
+            case QUICK_REACTION ->
                     this.plugin.getServer().getScheduler().scheduleRepeatingTask(new RoomSchedule_3(this), 20);
             default -> this.plugin.getServer().getScheduler().scheduleRepeatingTask(new RoomSchedule(this), 20);
         }
 
         setArenaFrame();
 
-        this.gameType =
-                switch (gameTypeName) {
-                    case "LightsOut" -> new LightsOut(this);
-                    case "OneToOne" -> new OneToOne(this);
-                    case "Jigsaw" -> new Jigsaw(this);
-                    case "C2048" -> new C2048(this);
-                    case "Sudoku" -> new Sudoku(this);
-                    case "RemoveAll" -> new RemoveAll(this);
-                    case "HanoiTower" -> new HanoiTower(this);
-                    case "OnOneLine" -> new OnOneLine(this);
-                    case "BlockPlay_4" -> new BlockPlay_4(this);
-                    case "BlockPlay_3" -> new BlockPlay_3(this);
-                    case "AvoidWhiteBlock" -> new AvoidWhiteBlock(this);
-                    case "CrazyClick" -> new CrazyClick(this);
-                    case "BeFaster" -> new BeFaster(this);
-                    case "CardMemory" -> new CardMemory(this);
+        this.gameTypeObject =
+                switch (gameType) {
+                    case LIGHTS_OUT -> new LightsOut(this);
+                    case ONE_TO_ONE -> new OneToOne(this);
+                    case JIGSAW -> new Jigsaw(this);
+                    case THE_2048 -> new C2048(this);
+                    case SUDOKU -> new Sudoku(this);
+                    case REMOVE_ALL -> new RemoveAll(this);
+                    case HANOI_TOWER -> new HanoiTower(this);
+                    case MAKE_A_LINE -> new OnOneLine(this);
+                    case N_PUZZLE -> new BlockPlay_4(this); // TODO
+                    case AVOID_WHITE_BLOCK -> new AvoidWhiteBlock(this);
+                    case CRAZY_CLICK -> new CrazyClick(this);
+                    case QUICK_REACTION -> new BeFaster(this);
+                    case CARD_MEMORY -> new CardMemory(this);
+                    case GREEDY_SNAKE -> null;
+                    case TETRIS -> null;
                 };
 
         if (!((Boolean) data.get("arena"))) {
-            gameType.buildArena();
+            gameTypeObject.buildArena();
         }
     }
 
@@ -177,11 +180,11 @@ public class Room implements Listener {
     }
 
     public void setArenaFrame() {
-        switch (gameTypeName) {
-            case "Sudoku":
+        switch (gameType) {
+            case SUDOKU -> {
                 int a = 0, b = 0;
                 switch (direction) {
-                    case "x+":
+                    case X_PLUS -> {
                         for (int y = yMin; y <= yMax; y++) {
                             for (int x = xMin; x <= xMax; x++) {
                                 level.setBlock(new Vector3(x, y, zMin), Block.get(35, 15));
@@ -202,8 +205,8 @@ public class Room implements Listener {
                                 b = 0;
                             }
                         }
-                        break;
-                    case "x-":
+                    }
+                    case X_MINUS -> {
                         for (int y = yMin; y <= yMax; y++) {
                             for (int x = xMin; x <= xMax; x++) {
                                 level.setBlock(new Vector3(x, y, zMin), Block.get(35, 15));
@@ -224,8 +227,8 @@ public class Room implements Listener {
                                 b = 0;
                             }
                         }
-                        break;
-                    case "z+":
+                    }
+                    case Z_PLUS -> {
                         for (int y = yMin; y <= yMax; y++) {
                             for (int z = zMin; z <= zMax; z++) {
                                 level.setBlock(new Vector3(xMin, y, z), Block.get(35, 15));
@@ -246,8 +249,8 @@ public class Room implements Listener {
                                 b = 0;
                             }
                         }
-                        break;
-                    case "z-":
+                    }
+                    case Z_MINUS -> {
                         for (int y = yMin; y <= yMax; y++) {
                             for (int z = zMin; z <= zMax; z++) {
                                 level.setBlock(new Vector3(xMin, y, z), Block.get(35, 15));
@@ -268,18 +271,16 @@ public class Room implements Listener {
                                 b = 0;
                             }
                         }
-                        break;
+                    }
                 }
-                break;
-            case "CrazyClick":
-                level.setBlock(new Vector3(xMin, yMin, zMin), Block.get(57, 0));
-                break;
-            case "HanoiTower":
+            }
+            case CRAZY_CLICK -> level.setBlock(new Vector3(xMin, yMin, zMin), Block.get(57, 0));
+            case HANOI_TOWER -> {
                 int ma = 0;
                 int aa = 1;
                 switch (direction) {
-                    case "x+":
-                    case "x-":
+                    case X_PLUS:
+                    case X_MINUS:
                         for (int x = xMin; x <= xMax; x++) {
                             for (int y = yMin; y <= yMax; y++) {
                                 level.setBlock(new Vector3(x, y, zMin), Block.get(35, ma));
@@ -293,8 +294,8 @@ public class Room implements Listener {
                             }
                         }
                         break;
-                    case "z+":
-                    case "z-":
+                    case Z_PLUS:
+                    case Z_MINUS:
                         for (int z = zMin; z <= zMax; z++) {
                             for (int y = yMin; y <= yMax; y++) {
                                 level.setBlock(new Vector3(xMin, y, z), Block.get(35, ma));
@@ -309,27 +310,26 @@ public class Room implements Listener {
                         }
                         break;
                 }
-                break;
-            default:
+            }
+            default -> {
                 int id = 35, mate = 5;
-                if (gameTypeName.equals("Jigsaw") || gameTypeName.equals("BlockPlay_4") || gameTypeName.equals("BlockPlay_3") || gameTypeName.equals("C2048")) {
+                if (gameType == CSwitch.GameType.JIGSAW || gameType == CSwitch.GameType.N_PUZZLE || gameType == CSwitch.GameType.THE_2048) {
                     id = 20;
                     mate = 0;
-                } else if (gameTypeName.equals("BeFaster") || gameTypeName.equals("CardMemory")) {
+                } else if (gameType == CSwitch.GameType.QUICK_REACTION || gameType == CSwitch.GameType.CARD_MEMORY) {
                     mate = 0;
                 }
-
                 switch (direction) {
-                    case "x+":
-                    case "x-":
+                    case X_PLUS:
+                    case X_MINUS:
                         for (int y = yMin; y <= yMax; y++) {
                             for (int x = xMin; x <= xMax; x++) {
                                 level.setBlock(new Vector3(x, y, zMin), Block.get(id, mate));
                             }
                         }
                         break;
-                    case "z+":
-                    case "z-":
+                    case Z_PLUS:
+                    case Z_MINUS:
                         for (int y = yMin; y <= yMax; y++) {
                             for (int z = zMin; z <= zMax; z++) {
                                 level.setBlock(new Vector3(xMin, y, z), Block.get(id, mate));
@@ -337,10 +337,11 @@ public class Room implements Listener {
                         }
                         break;
                 }
-                break;
+            }
         }
     }
 
+    //TODO 加上判断level
     public boolean isInArena(Vector3 block) {
         int x = (int) Math.round(Math.floor(block.x));
         int y = (int) Math.round(Math.floor(block.y));
@@ -354,13 +355,13 @@ public class Room implements Listener {
     }
 
     public void addItem() {
-        switch (gameTypeName) {
-            case "OneToOne":
+        switch (gameType) {
+            case ONE_TO_ONE:
                 for (int i = 0; i <= 15; i++) {
                     this.gamePlayer.getInventory().setItem(i, Item.get(351, i));
                 }
                 break;
-            case "Jigsaw":
+            case JIGSAW:
                 this.gamePlayer.getInventory().addItem(Item.get(35, 0, 1));
                 this.gamePlayer.getInventory().addItem(Item.get(42, 0, 1));
                 this.gamePlayer.getInventory().addItem(Item.get(80, 0, 1));
@@ -371,14 +372,14 @@ public class Room implements Listener {
                 this.gamePlayer.getInventory().addItem(Item.get(159, 4, 1));
                 this.gamePlayer.getInventory().addItem(Item.get(179, 0, 1));
                 break;
-            case "Sudoku":
+            case SUDOKU:
                 int a = 0;
                 for (int i = 1; i <= 9; i++) {
                     this.gamePlayer.getInventory().setItem(a, Item.get(35, i, 64));
                     a = a + 1;
                 }
                 break;
-            case "C2048":
+            case THE_2048:
                 Item item = Item.get(35, 0, 1);
                 this.gamePlayer.getInventory().setItem(1, item.setCustomName(">>  §a上  <<"));
                 item = Item.get(35, 1, 1);
@@ -388,7 +389,7 @@ public class Room implements Listener {
                 item = Item.get(35, 3, 1);
                 this.gamePlayer.getInventory().setItem(4, item.setCustomName(">>  §a右  <<"));
                 break;
-            case "OnOneLine":
+            case MAKE_A_LINE:
                 this.gamePlayer.getInventory().setItem(1, (Item.get(Item.DOOR_BLOCK, 0, 1)).setCustomName(">>  §a我完成了  <<"));
                 break;
             default:
@@ -410,7 +411,7 @@ public class Room implements Listener {
 
         player.sendMessage(">  你加入了游戏,等待游戏开始");
         player.sendMessage(">  输入@hub可退出游戏！");
-        if (gameTypeName.equals("OnOneLine")) {
+        if (gameType == CSwitch.GameType.MAKE_A_LINE) {
             player.sendMessage(">>  §c当你认为你已经不能再进行下一步时,请切换“门”物品以结束游戏！此游戏排行榜以分统计！");
             player.sendMessage(">>  §c当你认为你已经不能再进行下一步时,请切换“门”物品以结束游戏！此游戏排行榜以分统计！");
             player.sendMessage(">>  §c当你认为你已经不能再进行下一步时,请切换“门”物品以结束游戏！此游戏排行榜以分统计！");
@@ -422,10 +423,10 @@ public class Room implements Listener {
      */
     public void startGame() {
         this.isStarted = true;
-        plugin.changeSign(id);
+        RoomManager.changeSignText(id);
         saveBag();
         addItem();
-        gameType.buildOperation(false);
+        gameTypeObject.buildOperation(false);
         gamePlayer.getAdventureSettings().set(AdventureSettings.Type.ALLOW_FLIGHT, true);
         gamePlayer.getAdventureSettings().update();
     }
@@ -442,13 +443,14 @@ public class Room implements Listener {
             gamePlayer.getAdventureSettings().update();
         }
 
-        plugin.changeSign(id);
+        RoomManager.changeSignText(id);
 
         this.gamePlayer = null;
         this.isFinished = false;
-        this.rank = 0;
+        this.point = 0;
         this.setArenaFrame();
-        gameType.buildArena();
+        gameTypeObject.buildArena();
+        //TODO 记录玩家分数
     }
 
     /**
@@ -461,7 +463,7 @@ public class Room implements Listener {
             gamePlayer.getAdventureSettings().set(AdventureSettings.Type.ALLOW_FLIGHT, false);
             gamePlayer.getAdventureSettings().update();
         }
-        plugin.changeSign(id);
+        RoomManager.changeSignText(id);
     }
 
     /**
@@ -509,7 +511,7 @@ public class Room implements Listener {
     @SuppressWarnings("unused")
     public void onBlockBreak(BlockBreakEvent event) {
         if (this.isInGame(event.getPlayer())) {
-            if (!gameTypeName.equals("Sudoku")) event.setCancelled(true);
+            if (gameType != CSwitch.GameType.SUDOKU) event.setCancelled(true);
             if (!isStarted) event.setCancelled(true);
         }
     }
@@ -518,7 +520,7 @@ public class Room implements Listener {
     @SuppressWarnings("unused")
     public void onBlockPlace(BlockPlaceEvent event) {
         if (this.isInGame(event.getPlayer())) {
-            if (!gameTypeName.equals("Sudoku")) event.setCancelled(true);
+            if (gameType != CSwitch.GameType.SUDOKU) event.setCancelled(true);
             if (!isStarted) event.setCancelled(true);
         }
     }

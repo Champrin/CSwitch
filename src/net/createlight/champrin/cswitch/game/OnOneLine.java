@@ -1,37 +1,50 @@
-package net.createlight.champrin.cswitch.Game;
+package net.createlight.champrin.cswitch.game;
 
 import cn.nukkit.Player;
 import cn.nukkit.block.Block;
 import cn.nukkit.event.EventHandler;
 import cn.nukkit.event.Listener;
 import cn.nukkit.event.player.PlayerInteractEvent;
+import cn.nukkit.item.Item;
 import cn.nukkit.level.Level;
 import cn.nukkit.math.Vector3;
-import net.createlight.champrin.cswitch.Room;
+import net.createlight.champrin.cswitch.room.Room;
 
-import java.util.Random;
 
-public class RemoveAll extends Game implements Listener {
-    public RemoveAll(Room room) {
+public class OnOneLine extends Game implements Listener {
+    public OnOneLine(Room room) {
         super(room);
     }
 
+    Block firstBlock = null;
 
     @EventHandler
     public void onTouch(PlayerInteractEvent event) {
         if (this.room.isFinished) return;
-        if (this.gameTypeName.equals("RemoveAll")) {
+        if (this.gameType.equals("OnOneLine")) {
             Block block = event.getBlock();
+            Level level = block.level;
             Player player = event.getPlayer();
             if (this.room.isInGame(player)) {
                 if (this.room.isInArena(block)) {
                     event.setCancelled(true);
-                    this.updateBlock(block);
+                    if (firstBlock == null) {
+                        this.firstBlock = block;
+                    } else {
+                        level.setBlock(firstBlock, block);
+                        level.setBlock(block, firstBlock);
+                        this.updateBlock(firstBlock);
+                        firstBlock = null;
+                    }
+                    int item = player.getInventory().getItemInHand().getId();
+                    if (item == Item.DOOR_BLOCK) {
+                        this.room.isFinished = true;
+                        this.count = 0;
+                    }
                 }
             }
         }
     }
-
 
     public void updateBlock(Block block) {
         if (block.getId() != 159) return;
@@ -45,17 +58,17 @@ public class RemoveAll extends Game implements Listener {
     public void EliminateBlock(Block block, int mate) {
         if (block.getId() != 159) return;
 
-        Level level = block.getLevel();
+        Level level = block.level;
         int x = (int) Math.round(Math.floor(block.x));
         int y = (int) Math.round(Math.floor(block.y));
         int z = (int) Math.round(Math.floor(block.z));
         checkBlock(level, block, mate);
         checkBlock(level, new Vector3(x, y + 1, z), mate);
         checkBlock(level, new Vector3(x, y - 1, z), mate);
-        if (room.direction.equals("x+") || room.direction.equals("x-")) {
+        if (room.direction == Room.Direction.X_PLUS || room.direction == Room.Direction.X_MINUS) {
             checkBlock(level, new Vector3(x + 1, y, z), mate);
             checkBlock(level, new Vector3(x - 1, y, z), mate);
-        } else if (room.direction.equals("z+") || room.direction.equals("z-")) {
+        } else if (room.direction == Room.Direction.Z_PLUS || room.direction == Room.Direction.Z_MINUS) {
             checkBlock(level, new Vector3(x, y, z + 1), mate);
             checkBlock(level, new Vector3(x, y, z - 1), mate);
         }
@@ -69,7 +82,7 @@ public class RemoveAll extends Game implements Listener {
             this.count = count + 1;
             level.setBlock(block, Block.get(0, 0));
             this.check = check + 1;
-            this.room.rank = this.room.rank + count;
+            this.room.point = this.room.point + count;
             this.EliminateBlock(block, mate);
         }
     }
@@ -86,23 +99,31 @@ public class RemoveAll extends Game implements Listener {
 
     public void MoveBlock(Block block) {
         Level level = block.level;
+        String[] p1 = ((String) this.room.data.get("pos1")).split("\\+");
+        String[] p2 = ((String) this.room.data.get("pos2")).split("\\+");
+        int xi = (Math.min(Integer.parseInt(p1[0]), Integer.parseInt(p2[0])));
+        int xa = (Math.max(Integer.parseInt(p1[0]), Integer.parseInt(p2[0])));
+        int yi = (Math.min(Integer.parseInt(p1[1]), Integer.parseInt(p2[1])));
+        int ya = (Math.max(Integer.parseInt(p1[1]), Integer.parseInt(p2[1])));
+        int zi = (Math.min(Integer.parseInt(p1[2]), Integer.parseInt(p2[2])));
+        int za = (Math.max(Integer.parseInt(p1[2]), Integer.parseInt(p2[2])));
         switch (room.direction) {
-            case "x+":
-            case "x-":
-                for (int y = room.yMin; y <= room.yMax; y++) {
-                    for (int x = room.xMin; x <= room.xMax; x++) {
-                        if (level.getBlock(new Vector3(x, y, room.zMin)).getId() != 0) {
-                            FallingBlock(level.getBlock(new Vector3(x, y, room.zMin)));
+            case X_PLUS:
+            case X_MINUS:
+                for (int y = yi; y <= ya; y++) {
+                    for (int x = xi; x <= xa; x++) {
+                        if (level.getBlock(new Vector3(x, y, zi)).getId() != 0) {
+                            FallingBlock(level.getBlock(new Vector3(x, y, zi)));
                         }
                     }
                 }
                 break;
-            case "z+":
-            case "z-":
-                for (int y = room.yMin; y <= room.yMax; y++) {
-                    for (int z = room.zMin; z <= room.zMax; z++) {
-                        if (level.getBlock(new Vector3(room.xMin, y, z)).getId() != 0) {
-                            FallingBlock(level.getBlock(new Vector3(room.xMin, y, z)));
+            case Z_PLUS:
+            case Z_MINUS:
+                for (int y = yi; y <= ya; y++) {
+                    for (int z = zi; z <= za; z++) {
+                        if (level.getBlock(new Vector3(xi, y, z)).getId() != 0) {
+                            FallingBlock(level.getBlock(new Vector3(xi, y, z)));
                         }
 
                     }
@@ -112,17 +133,13 @@ public class RemoveAll extends Game implements Listener {
     }
 
     public void checkFinish() {
-        if (check >= area) {
-            this.room.isFinished = true;
-            this.count = 0;
-            this.check = 0;
-        }
+
     }
    /*TODO 自动靠拢
      public void clearAir(String direction, int xi, int xa, int yi, int ya, int zi, int za, Level level) {
         switch (direction) {
-            case "x+":
-            case "x-":
+            case X_PLUS:
+            case X_MINUS:
                 for (int x = xi; x <= xa; x++) {
                     int a = 0;
                     for (int y = yi; y <= ya; y++) {
@@ -140,8 +157,8 @@ public class RemoveAll extends Game implements Listener {
                     }
                 }
                 break;
-            case "z+":
-            case "z-":
+            case Z_PLUS:
+            case Z_MINUS:
                 for (int z = zi; z <= za; z++) {
                     int a = 0;
                     for (int y = yi; y <= ya; y++) {
@@ -165,8 +182,8 @@ public class RemoveAll extends Game implements Listener {
     public void checkFinish(String direction, int xi, int xa, int yi, int ya, int zi, int za, Level level) {
         int all = 0;
         switch (direction) {
-            case "x+":
-            case "x-":
+            case X_PLUS:
+            case X_MINUS:
                 for (int x = xi; x <= xa; x++) {
                     for (int y = yi; y <= ya; y++) {
                         if (level.getBlock(new Vector3(x, zi, y)).getId() == 0) {
@@ -183,8 +200,8 @@ public class RemoveAll extends Game implements Listener {
                     }
                 }
                 break;
-            case "z+":
-            case "z-":
+            case Z_PLUS:
+            case Z_MINUS:
                 for (int z = zi; z <= za; z++) {
                     for (int y = yi; y <= ya; y++) {
                         if (level.getBlock(new Vector3(xi, z, y)).getId() != 0) {
@@ -204,30 +221,10 @@ public class RemoveAll extends Game implements Listener {
                 break;
         }
     }*/
-   @Override
-   public void buildArena() {
-       switch (room.direction) {
-           case "x+":
-           case "x-":
-               for (int x = room.xMin; x <= room.xMax; x++) {
-                   for (int y = room.yMin; y <= room.yMax; y++) {
-                       int num = new Random().nextInt(5) + 4;
-                       Block block = Block.get(159, num);
-                       room.level.setBlock(new Vector3(x, y, room.zMin), block);
-                   }
-               }
-               break;
-           case "z+":
-           case "z-":
-               for (int z = room.zMin; z <= room.zMax; z++) {
-                   for (int y = room.yMin; y <= room.yMax; y++) {
-                       int num = new Random().nextInt(5) + 4;
-                       Block block = Block.get(159, num);
-                       room.level.setBlock(new Vector3(room.xMin, y, z), block);
-                   }
-               }
-               break;
-       }
-       buildOperation(true);
-   }
+
+    @Override
+    public void buildArena() {
+        this.firstBlock = null;
+        buildOperation(true);
+    }
 }

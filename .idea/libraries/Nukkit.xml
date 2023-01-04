@@ -4,6 +4,10 @@
       <root url="jar://$PROJECT_DIR$/../Nukkit/Nukkit.jar!/" />
     </CLASSES>
     <JAVADOC />
-    <SOURCES />
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/../Nukkit/Nukkit-master.zip!/Nukkit-master/.mvn/wrapper" />
+      <root url="jar://$PROJECT_DIR$/../Nukkit/Nukkit-master.zip!/Nukkit-master/src/main/java" />
+      <root url="jar://$PROJECT_DIR$/../Nukkit/Nukkit-master.zip!/Nukkit-master/src/test/java" />
+    </SOURCES>
   </library>
 </component>

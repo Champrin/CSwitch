@@ -1,10 +1,10 @@
-package net.createlight.champrin.cswitch.Game;
+package net.createlight.champrin.cswitch.game;
 
 
 import cn.nukkit.event.EventHandler;
 import cn.nukkit.event.EventPriority;
 import cn.nukkit.event.player.PlayerInteractEvent;
-import net.createlight.champrin.cswitch.Room;
+import net.createlight.champrin.cswitch.room.Room;
 
 public class CrazyClick extends Game {
 
@@ -14,16 +14,21 @@ public class CrazyClick extends Game {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onTouch(PlayerInteractEvent event) {
+        // 判断是否在房间进行游戏
+        if (!this.gameType.equals("CrazyClick")) return;
         if (this.room.isFinished) return;
-        if (this.gameTypeName.equals("CrazyClick")) {
-            if (!this.room.isStarted) return;
-            if (this.room.isInGame(event.getPlayer())) {
-                if (event.getBlock().getId() == 57) {
-                    this.room.rank = room.rank + 1;
-                }
-            }
+        if (!this.room.isStarted) return;
+        if (!this.room.isInGame(event.getPlayer())) return;
+
+        // 满足判断条件，终止事件带来的其他影响
+        event.setCancelled(true);
+
+        // 该类型游戏机制
+        if (event.getBlock().getId() == 57) {
+            ++this.room.point;
         }
     }
+
 
     @Override
     public void checkFinish() {

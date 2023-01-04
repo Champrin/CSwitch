@@ -1,4 +1,4 @@
-package net.createlight.champrin.cswitch.Game;
+package net.createlight.champrin.cswitch.game;
 
 import cn.nukkit.Player;
 import cn.nukkit.block.Block;
@@ -6,7 +6,7 @@ import cn.nukkit.event.EventHandler;
 import cn.nukkit.event.player.PlayerInteractEvent;
 import cn.nukkit.level.Level;
 import cn.nukkit.math.Vector3;
-import net.createlight.champrin.cswitch.Room;
+import net.createlight.champrin.cswitch.room.Room;
 
 import java.util.Random;
 
@@ -25,12 +25,12 @@ public class AvoidWhiteBlock extends Game {
 
     public void getMaxAndMin() {
         switch (room.direction) {
-            case "x+", "x-" -> {
+            case X_PLUS, X_MINUS -> {
                 this.min = room.xMin;
                 this.max = room.xMax;
                 this.axis = room.zMin;
             }
-            case "z+", "z-" -> {
+            case Z_PLUS, Z_MINUS -> {
                 this.min = room.zMin;
                 this.max = room.zMax;
                 this.axis = room.xMin;
@@ -43,7 +43,7 @@ public class AvoidWhiteBlock extends Game {
     @EventHandler
     public void onTouch(PlayerInteractEvent event) {
         if (this.room.isFinished) return;
-        if (this.gameTypeName.equals("AvoidWhiteBlock")) {
+        if (this.gameType.equals("AvoidWhiteBlock")) {
             Block block = event.getBlock();
             Player player = event.getPlayer();
             if (this.room.isInGame(player)) {
@@ -51,7 +51,7 @@ public class AvoidWhiteBlock extends Game {
                     if (block.getDamage() == 15) {
                         event.setCancelled(true);
                         if ((int) Math.round(Math.floor(block.y)) != minY) return;
-                        this.room.rank = room.rank + 1;
+                        this.room.point = room.point + 1;
                         checkFinish();
                         updateBlock(block);
                     } else {
@@ -68,7 +68,7 @@ public class AvoidWhiteBlock extends Game {
         this.useTimes = useTimes - 1;
         int newW = new Random().nextInt(width);
         switch (room.direction) {
-            case "x+" -> {
+            case X_PLUS -> {
                 for (int x = min; x <= max; x++) {
                     level.setBlock(new Vector3(x, (int) Math.round(Math.floor(block.y)), axis), airBlock);
 
@@ -90,7 +90,7 @@ public class AvoidWhiteBlock extends Game {
                     level.setBlock(new Vector3(min + newW, maxY, axis), blackWoolBlock);
                 }
             }
-            case "x-" -> {
+            case X_MINUS -> {
                 for (int x = min; x <= max; x++) {
                     level.setBlock(new Vector3(x, (int) Math.round(Math.floor(block.y)), axis), airBlock);
 
@@ -112,7 +112,7 @@ public class AvoidWhiteBlock extends Game {
                     level.setBlock(new Vector3(min + newW, maxY, axis), blackWoolBlock);
                 }
             }
-            case "z+" -> {
+            case Z_PLUS -> {
                 for (int z = min; z <= max; z++) {
                     level.setBlock(new Vector3(this.axis, (int) Math.round(Math.floor(block.y)), z), airBlock);
                 }
@@ -134,7 +134,7 @@ public class AvoidWhiteBlock extends Game {
 
                 }
             }
-            case "z-" -> {
+            case Z_MINUS -> {
                 for (int z = min; z <= max; z++) {
                     level.setBlock(new Vector3(this.axis, (int) Math.round(Math.floor(block.y)), z), airBlock);
                 }
@@ -160,7 +160,7 @@ public class AvoidWhiteBlock extends Game {
 
     @Override
     public void checkFinish() {
-        if (this.room.rank >= this.count) {
+        if (this.room.point >= this.count) {
             this.room.isFinished = true;
         }
     }
@@ -168,7 +168,7 @@ public class AvoidWhiteBlock extends Game {
     @Override
     public void buildArena() {
         switch (room.direction) {
-            case "x+", "x-" -> {
+            case X_PLUS, X_MINUS -> {
                 for (int y = room.yMin; y <= room.yMax; y++) {
                     for (int x = room.xMin; x <= room.xMax; x++) {
                         room.level.setBlock(new Vector3(x, y, room.zMin), whiteWoolBlock);
@@ -177,7 +177,7 @@ public class AvoidWhiteBlock extends Game {
                     room.level.setBlock(new Vector3(room.xMin + x, y, room.zMin), blackWoolBlock);
                 }
             }
-            case "z+", "z-" -> {
+            case Z_PLUS, Z_MINUS -> {
                 for (int y = room.yMin; y <= room.yMax; y++) {
                     for (int z = room.zMin; z <= room.zMax; z++) {
                         room.level.setBlock(new Vector3(room.xMin, y, z), whiteWoolBlock);

@@ -1,4 +1,4 @@
-package net.createlight.champrin.cswitch.Game;
+package net.createlight.champrin.cswitch.game;
 
 import cn.nukkit.Player;
 import cn.nukkit.block.Block;
@@ -7,18 +7,19 @@ import cn.nukkit.event.Listener;
 import cn.nukkit.event.player.PlayerInteractEvent;
 import cn.nukkit.level.Level;
 import cn.nukkit.math.Vector3;
-import net.createlight.champrin.cswitch.Room;
+import net.createlight.champrin.cswitch.room.Room;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 
+////红，橙，黄，绿，青，蓝，紫，灰，粉，黑，白，棕。
+/// 14-1-4-5-13-9-3-11-10-8-7-6-15-0-12
+public class BlockPlay_4 extends Game implements Listener {
 
-public class BlockPlay_3 extends Game implements Listener {
+    public ArrayList<Integer> checkLayout = new ArrayList<>(Arrays.asList(14, 1, 4, 5, 13, 9, 3, 11, 10, 8, 7, 6, 15, 0, 12, 0));
 
-    public ArrayList<Integer> checkLayout = new ArrayList<>(Arrays.asList(14, 1, 4, 5, 13, 9, 3, 11, 0));
-
-    public BlockPlay_3(Room room) {
+    public BlockPlay_4(Room room) {
         super(room);
         buildArena();
     }
@@ -26,7 +27,7 @@ public class BlockPlay_3 extends Game implements Listener {
     @EventHandler
     public void onTouch(PlayerInteractEvent event) {
         if (this.room.isFinished) return;
-        if (this.gameTypeName.equals("BlockPlay_3")) {
+        if (this.gameType.equals("BlockPlay_4")) {
             if (!this.room.isStarted) return;
             Block block = event.getBlock();
             Player player = event.getPlayer();
@@ -47,11 +48,11 @@ public class BlockPlay_3 extends Game implements Listener {
 
         if (checkBlock(block, new Vector3(x, y + 1, z))) {
             if (checkBlock(block, new Vector3(x, y - 1, z))) {
-                if (room.direction.equals("x+") || room.direction.equals("x-")) {
+                if (room.direction == Room.Direction.X_PLUS || room.direction == Room.Direction.X_MINUS) {
                     if (checkBlock(block, new Vector3(x + 1, y, z))) {
                         checkBlock(block, new Vector3(x - 1, y, z));
                     }
-                } else if (room.direction.equals("z+") || room.direction.equals("z-")) {
+                } else if (room.direction == Room.Direction.Z_PLUS || room.direction == Room.Direction.Z_MINUS) {
                     if (checkBlock(block, new Vector3(x, y, z + 1))) {
                         checkBlock(block, new Vector3(x, y, z - 1));
                     }
@@ -77,7 +78,7 @@ public class BlockPlay_3 extends Game implements Listener {
 
     public void checkArea(Block block) {
         switch (room.direction) {
-            case "x+": {
+            case X_PLUS: {
                 for (int y = room.yMax; y >= room.yMin; y--) {
                     for (int x = room.xMin; x <= room.xMax; x++) {
                         Vector3 v3 = new Vector3(x, y, room.zMin);
@@ -87,7 +88,7 @@ public class BlockPlay_3 extends Game implements Listener {
                 }
                 break;
             }
-            case "x-": {
+            case X_MINUS: {
                 for (int y = room.yMax; y >= room.yMin; y--) {
                     for (int x = room.xMax; x >= room.xMin; x--) {
                         Vector3 v3 = new Vector3(x, y, room.zMin);
@@ -97,7 +98,7 @@ public class BlockPlay_3 extends Game implements Listener {
                 }
                 break;
             }
-            case "z+": {
+            case Z_PLUS: {
                 for (int y = room.yMax; y >= room.yMin; y--) {
                     for (int z = room.zMin; z <= room.zMax; z++) {
                         Vector3 v3 = new Vector3(room.xMin, y, z);
@@ -107,7 +108,7 @@ public class BlockPlay_3 extends Game implements Listener {
                 }
                 break;
             }
-            case "z-": {
+            case Z_MINUS: {
                 for (int y = room.yMax; y >= room.yMin; y--) {
                     for (int z = room.zMax; z >= room.zMin; z--) {
                         Vector3 v3 = new Vector3(room.xMin, y, z);
@@ -129,15 +130,15 @@ public class BlockPlay_3 extends Game implements Listener {
 
     @Override
     public void buildArena() {
-        ArrayList<Integer> layout = new ArrayList<>(Arrays.asList(14, 1, 4, 5, 13, 9, 3, 11));
+        ArrayList<Integer> layout = new ArrayList<>(Arrays.asList(14, 1, 4, 5, 13, 9, 3, 11, 10, 8, 7, 6, 15, 0, 12));
         Collections.shuffle(layout);
 
         int a = 0;
         switch (room.direction) {
-            case "x+": {
+            case X_PLUS: {
                 for (int y = room.yMax; y >= room.yMin; y--) {
                     for (int x = room.xMin; x <= room.xMax; x++) {
-                        if (a == 8) break;
+                        if (a == 15) break;
                         Vector3 v3 = new Vector3(x, y, room.zMin);
                         int mate = layout.get(a);
                         room.level.setBlock(v3, Block.get(35, mate));
@@ -146,10 +147,10 @@ public class BlockPlay_3 extends Game implements Listener {
                 }
                 break;
             }
-            case "x-": {
+            case X_MINUS: {
                 for (int y = room.yMax; y >= room.yMin; y--) {
                     for (int x = room.xMax; x >= room.xMin; x--) {
-                        if (a == 8) break;
+                        if (a == 15) break;
                         Vector3 v3 = new Vector3(x, y, room.zMin);
                         int mate = layout.get(a);
                         room.level.setBlock(v3, Block.get(35, mate));
@@ -158,10 +159,10 @@ public class BlockPlay_3 extends Game implements Listener {
                 }
                 break;
             }
-            case "z+": {
+            case Z_PLUS: {
                 for (int y = room.yMax; y >= room.yMin; y--) {
                     for (int z = room.zMin; z <= room.zMax; z++) {
-                        if (a == 8) break;
+                        if (a == 15) break;
                         Vector3 v3 = new Vector3(room.xMin, y, z);
                         int mate = layout.get(a);
                         room.level.setBlock(v3, Block.get(35, mate));
@@ -171,10 +172,10 @@ public class BlockPlay_3 extends Game implements Listener {
                 }
                 break;
             }
-            case "z-": {
+            case Z_MINUS: {
                 for (int y = room.yMax; y >= room.yMin; y--) {
                     for (int z = room.zMax; z >= room.zMin; z--) {
-                        if (a == 8) break;
+                        if (a == 15) break;
                         Vector3 v3 = new Vector3(room.xMin, y, z);
                         int mate = layout.get(a);
                         room.level.setBlock(v3, Block.get(35, mate));

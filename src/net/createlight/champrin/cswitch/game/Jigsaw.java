@@ -1,4 +1,4 @@
-package net.createlight.champrin.cswitch.Game;
+package net.createlight.champrin.cswitch.game;
 
 import cn.nukkit.Player;
 import cn.nukkit.block.Block;
@@ -7,7 +7,7 @@ import cn.nukkit.event.Listener;
 import cn.nukkit.event.player.PlayerInteractEvent;
 import cn.nukkit.item.Item;
 import cn.nukkit.math.Vector3;
-import net.createlight.champrin.cswitch.Room;
+import net.createlight.champrin.cswitch.room.Room;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,7 +33,7 @@ public class Jigsaw extends Game implements Listener {
 
     public void setRightPlace() {
         switch (room.direction) {
-            case "x+": {
+            case X_PLUS: {
                 for (int y = room.yMax; y >= room.yMin; y--) {
                     for (int x = room.xMin; x <= room.xMax; x++) {
                         Vector3 v3 = new Vector3(x, y, room.zMin);
@@ -42,7 +42,7 @@ public class Jigsaw extends Game implements Listener {
                 }
                 break;
             }
-            case "x-": {
+            case X_MINUS: {
                 for (int y = room.yMax; y >= room.yMin; y--) {
                     for (int x = room.xMax; x >= room.xMin; x--) {
                         Vector3 v3 = new Vector3(x, y, room.zMin);
@@ -51,7 +51,7 @@ public class Jigsaw extends Game implements Listener {
                 }
                 break;
             }
-            case "z+": {
+            case Z_PLUS: {
                 for (int y = room.yMax; y >= room.yMin; y--) {
                     for (int z = room.zMin; z <= room.zMax; z++) {
                         Vector3 v3 = new Vector3(room.xMin, y, z);
@@ -60,7 +60,7 @@ public class Jigsaw extends Game implements Listener {
                 }
                 break;
             }
-            case "z-": {
+            case Z_MINUS: {
                 for (int y = room.yMax; y >= room.yMin; y--) {
                     for (int z = room.zMax; z >= room.zMin; z--) {
                         Vector3 v3 = new Vector3(room.xMin, y, z);
@@ -75,7 +75,7 @@ public class Jigsaw extends Game implements Listener {
     public void setBlock() {
         int a = 0;
         switch (room.direction) {
-            case "x+": {
+            case X_PLUS: {
                 for (int y = room.yMax + 6; y >= room.yMin + 6; y--) {
                     for (int x = room.xMin; x <= room.xMax; x++) {
                         String[] I = layout.get(a).split("-");
@@ -85,7 +85,7 @@ public class Jigsaw extends Game implements Listener {
                 }
                 break;
             }
-            case "x-": {
+            case X_MINUS: {
                 for (int y = room.yMax + 6; y >= room.yMin + 6; y--) {
                     for (int x = room.xMax; x >= room.xMin; x--) {
                         String[] I = layout.get(a).split("-");
@@ -95,7 +95,7 @@ public class Jigsaw extends Game implements Listener {
                 }
                 break;
             }
-            case "z+": {
+            case Z_PLUS: {
                 for (int y = room.yMax + 6; y >= room.yMin + 6; y--) {
                     for (int z = room.zMin; z <= room.zMax; z++) {
                         String[] I = layout.get(a).split("-");
@@ -105,7 +105,7 @@ public class Jigsaw extends Game implements Listener {
                 }
                 break;
             }
-            case "z-": {
+            case Z_MINUS: {
                 for (int y = room.yMax + 6; y >= room.yMin + 6; y--) {
                     for (int z = room.zMax; z >= room.zMin; z--) {
                         String[] I = layout.get(a).split("-");
@@ -121,7 +121,7 @@ public class Jigsaw extends Game implements Listener {
     @EventHandler
     public void onTouch(PlayerInteractEvent event) {
         if (this.room.isFinished) return;
-        if (this.gameTypeName.equals("Jigsaw")) {
+        if (this.gameType.equals("Jigsaw")) {
             if (!this.room.isStarted) return;
             Player player = event.getPlayer();
             if (this.room.isInGame(player)) {
@@ -138,7 +138,7 @@ public class Jigsaw extends Game implements Listener {
                     if (layout.contains(Hand)) {
                         int a = layout.indexOf(Hand);
                         if (Pos.get(a).equals(v3)) {
-                            this.room.rank = this.room.rank + 1;
+                            this.room.point = this.room.point + 1;
                             updateBlock(block, Hand);
                         }
                     }
@@ -154,7 +154,7 @@ public class Jigsaw extends Game implements Listener {
     }
 
     public void checkFinish() {
-        if (this.room.rank >= 9) {
+        if (this.room.point >= 9) {
             this.room.isFinished = true;
         }
     }

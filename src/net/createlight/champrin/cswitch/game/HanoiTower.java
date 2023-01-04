@@ -1,4 +1,4 @@
-package net.createlight.champrin.cswitch.Game;
+package net.createlight.champrin.cswitch.game;
 
 import cn.nukkit.Player;
 import cn.nukkit.block.Block;
@@ -7,7 +7,7 @@ import cn.nukkit.event.Listener;
 import cn.nukkit.event.player.PlayerInteractEvent;
 import cn.nukkit.level.Level;
 import cn.nukkit.math.Vector3;
-import net.createlight.champrin.cswitch.Room;
+import net.createlight.champrin.cswitch.room.Room;
 
 public class HanoiTower extends Game implements Listener {
 
@@ -19,23 +19,26 @@ public class HanoiTower extends Game implements Listener {
 
     @EventHandler
     public void onTouch(PlayerInteractEvent event) {
+        // 判断是否在房间进行游戏
+        if (!this.gameType.equals("HanoiTower")) return;
         if (this.room.isFinished) return;
-        if (this.gameTypeName.equals("HanoiTower")) {
-            if (!this.room.isStarted) return;
-            Player player = event.getPlayer();
-            if (this.room.isInGame(player)) {
-                Block block = event.getBlock();
-                if (block.getDamage() == 15) return;
-                if (this.room.isInArena(block)) {
-                    event.setCancelled(true);
-                    if (click == null) {
-                        this.click = block;
-                    } else {
-                        updateBlock(block);
-                        this.click = null;
-                    }
-                }
-            }
+        if (!this.room.isStarted) return;
+        Player player = event.getPlayer();
+        if (!this.room.isInGame(player)) return;
+
+        // 满足判断条件，终止事件带来的其他影响
+        event.setCancelled(true);
+
+        // 该类型游戏机制
+        Block block = event.getBlock();
+        if (block.getDamage() == 15) return;
+        if (!this.room.isInArena(block)) return;
+
+        if (click == null) {
+            this.click = block;
+        } else {
+            updateBlock(block);
+            this.click = null;
         }
     }
 
@@ -79,22 +82,22 @@ public class HanoiTower extends Game implements Listener {
             return;
         }
         switch (room.direction) {
-            case "x+":
-            case "z-":
+            case X_PLUS:
+            case Z_MINUS:
                 if (level.getBlock(new Vector3(room.xMax, room.yMin, room.zMin)).getDamage() == 3) {
                     if (level.getBlock(new Vector3(room.xMax, room.yMin + 1, room.zMin)).getDamage() == 2) {
                         if (level.getBlock(new Vector3(room.xMax, room.yMax, room.zMin)).getDamage() == 1) {
-                            this.room.rank = 3;
+                            this.room.point = 3;
                         }
                     }
                 }
                 break;
-            case "z+":
-            case "x-":
+            case Z_PLUS:
+            case X_MINUS:
                 if (level.getBlock(new Vector3(room.xMin, room.yMin, room.zMax)).getDamage() == 3) {
                     if (level.getBlock(new Vector3(room.xMin, room.yMin + 1, room.zMax)).getDamage() == 2) {
                         if (level.getBlock(new Vector3(room.xMin, room.yMax, room.zMax)).getDamage() == 1) {
-                            this.room.rank = 3;
+                            this.room.point = 3;
                         }
                     }
                 }
@@ -105,24 +108,24 @@ public class HanoiTower extends Game implements Listener {
 
     @Override
     public void checkFinish() {
-        if (this.room.rank >= 3) {
+        if (this.room.point >= 3) {
             this.room.isFinished = true;
         }
     }
 
     @Override
     public void buildArena() {
-        this.click=null;
+        this.click = null;
         switch (room.direction) {
-            case "x+", "z-" -> {
-                room.level.setBlock(new Vector3(room.xMin, room.yMin, room.zMax), Block.get(35, 3));
-                room.level.setBlock(new Vector3(room.xMin, room.yMin + 1, room.zMax), Block.get(35, 2));
-                room.level.setBlock(new Vector3(room.xMin, room.yMin + 2, room.zMax), Block.get(35, 1));
+            case X_PLUS, Z_MINUS -> {
+                room.level.setBlock(room.xMin, room.yMin, room.zMax, Block.get(35, 3), false, true);
+                room.level.setBlock(room.xMin, room.yMin + 1, room.zMax, Block.get(35, 2), false, true);
+                room.level.setBlock(room.xMin, room.yMin + 2, room.zMax, Block.get(35, 1), false, true);
             }
-            case "x-", "z+" -> {
-                room.level.setBlock(new Vector3(room.xMax, room.yMin, room.zMin), Block.get(35, 3));
-                room.level.setBlock(new Vector3(room.xMax, room.yMin + 1, room.zMin), Block.get(35, 2));
-                room.level.setBlock(new Vector3(room.xMax, room.yMin + 2, room.zMin), Block.get(35, 1));
+            case X_MINUS, Z_PLUS -> {
+                room.level.setBlock(room.xMax, room.yMin, room.zMin, Block.get(35, 3), false, true);
+                room.level.setBlock(room.xMax, room.yMin + 1, room.zMin, Block.get(35, 2), false, true);
+                room.level.setBlock(room.xMax, room.yMin + 2, room.zMin, Block.get(35, 1), false, true);
             }
         }
         buildOperation(true);

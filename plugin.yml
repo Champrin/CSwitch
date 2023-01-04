@@ -1,9 +1,9 @@
 name: CSwitch
 main: net.createlight.champrin.cswitch.CSwitch
-version: "3.0.0"
+version: "3.1.0"
 api: ["1.0.8"]
 
-author: Champrin,Spiderman
+author: Champrin
 description: "CSwitch 单人游戏合集!"
 
 commands:

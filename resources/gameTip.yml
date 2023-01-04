@@ -1,0 +1,21 @@
+game-fail: ""
+game-start: ""
+game-stop: ""
+game-count-greaterThan-10: "§e游戏即将开始.."
+
+count-type-gaming:
+  - "{GAME_TYPE}>> §a§l游戏计时: §c{TIME}s  §e获得分数: §6{SCORE}"
+
+count-type-finish:
+  - "§f======================="
+  - ">>  §a完成游戏所用时间: §6§l{TIME}"
+  - ">>  §f你的得分: §6§l{SCORE}"
+  - "§f======================="
+
+countdown-type-gaming:
+  - "{GAME_TYPE}>> §a§l游戏计时: §c{TIME}s  §e获得分数: §6{SCORE}"
+
+countdown-type-finish:
+  - "§f======================="
+  - ">>  §f你的得分: §6§l{SCORE}"
+  - "§f======================="

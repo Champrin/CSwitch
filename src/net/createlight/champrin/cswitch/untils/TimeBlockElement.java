@@ -6,7 +6,7 @@ import cn.nukkit.scheduler.Task;
 public class TimeBlockElement extends Task {
 
     private int second;
-    private Block showBlock;
+    private final Block showBlock;
 
     public TimeBlockElement(int second, Block showBlock) {
         this.second = second;

@@ -1,51 +1,76 @@
 package net.createlight.champrin.cswitch.schedule;
 
-import cn.nukkit.Player;
+
 import cn.nukkit.scheduler.Task;
-import net.createlight.champrin.cswitch.Room;
+import cn.nukkit.utils.Config;
+import net.createlight.champrin.cswitch.room.Room;
 import net.createlight.champrin.cswitch.untils.Countdown;
 
-public class RoomSchedule extends Task {
+import java.util.List;
 
-    private int startTime, spendTime = 0;
+/**
+ * 正计时器
+ */
+public class RoomSchedule extends Task {
     private final Room room;
+    private final int prepareTime; // 准备时间
+    private int prepareTimeCountDown; // 准备时间倒计时
+    private int spendTime = 0; // 游戏花费时间
+    private final String gamingTipFormat;
+    private final String finishTipFormat;
 
     public RoomSchedule(Room room) {
         this.room = room;
-        this.startTime = Integer.parseInt((String) room.data.get("start_time")) + 1;
+        this.prepareTime = Integer.parseInt((String) room.data.get("start_time"));
+        this.prepareTimeCountDown = this.prepareTime;
+
+        //TODO
+        Config gameRuleConfig = new Config("FILE", Config.YAML);
+        List<String> tipList = gameRuleConfig.getStringList("count-type-gaming");
+        StringBuilder stringBuilder = new StringBuilder();
+        for (String tip : tipList) {
+            stringBuilder.append(tip).append("\n");
+        }
+        gamingTipFormat = stringBuilder.toString();
+
+        tipList = gameRuleConfig.getStringList("count-type-finish");
+        stringBuilder = new StringBuilder();
+        for (String tip : tipList) {
+            stringBuilder.append(tip).append("\n");
+        }
+        finishTipFormat = stringBuilder.toString();
     }
 
     @Override
     public void onRun(int tick) {
+        //TODO 没有人时重新设置delay this.getHandler().setDelay(20);
         if (!this.room.isStarted) {
             if (this.room.gamePlayer != null) {
-                this.startTime = startTime - 1;
-                Player p = room.gamePlayer;
-                p.sendPopup(new Countdown().countDown(startTime));
-                if (this.startTime <= 0) {
+                --this.prepareTimeCountDown;
+                this.room.gamePlayer.sendPopup(Countdown.countDown(prepareTimeCountDown));
+                if (this.prepareTimeCountDown <= 0) {
                     this.room.startGame();
-                    this.spendTime = 0;
-                    this.startTime = Integer.parseInt((String) this.room.data.get("start_time")) + 1;
+                    this.prepareTimeCountDown = this.prepareTime;
                 }
             } else {
-                this.startTime = Integer.parseInt((String) this.room.data.get("start_time")) + 1;
-                this.spendTime = 0;
+                this.prepareTimeCountDown = this.prepareTime;
             }
-        }
-        if (this.room.isStarted) {
-            this.spendTime = spendTime + 1;
+        } else {
+            ++this.spendTime;
             if (this.room.gamePlayer == null) {
                 this.room.stopGame();
                 this.spendTime = 0;
             } else if (this.room.isFinished) {
-                room.gamePlayer.sendMessage("§f=======================");
-                room.gamePlayer.sendMessage(">>  §a完成游戏所用时间: §6§l" + spendTime);
-                room.gamePlayer.sendMessage("§f=======================");
-                room.plugin.checkRank(room.gameTypeName, spendTime, room.gamePlayer.getName());
+                room.gamePlayer.sendMessage(finishTipFormat
+                        .replace("{TIME}", String.valueOf(this.spendTime))
+                        .replace("{SCORE}", String.valueOf(this.room.point)));
+                // room.plugin.checkRank(room.gameType, spendTime, room.gamePlayer.getName());
                 this.room.stopGame();
                 this.spendTime = 0;
             } else {
-                room.gamePlayer.sendPopup(room.gameTypeName + ">> §a§lElapsed time:§c" + spendTime + "s  §eYour point:§6" + this.room.rank);
+                room.gamePlayer.sendPopup(gamingTipFormat
+                        .replace("{TIME}", String.valueOf(this.spendTime))
+                        .replace("{SCORE}", String.valueOf(this.room.point)));
             }
         }
     }

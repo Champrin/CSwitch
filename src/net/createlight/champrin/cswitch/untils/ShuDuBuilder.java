@@ -13,12 +13,12 @@ public class ShuDuBuilder {
     /**
      * 存储数字的数组
      */
-    private int[][] x;
-    private int[][] n = new int[9][9];
+    private final int[][] x;
+    private final int[][] n = new int[9][9];
     /**
      * 生成随机数字的源数组，随机数字从该数组中产生
      */
-    private int[] num = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+    private final int[] num = {1, 2, 3, 4, 5, 6, 7, 8, 9};
 
     public void generateShuDu() {
         // 生成数字
@@ -197,17 +197,16 @@ public class ShuDuBuilder {
         return true;
     }
 
+    private final Random r = new Random();
+
     /**
      * 产生1-9之间的随机数字 规则：生成的随机数字放置在数组8-time下标的位置，随着time的增加，已经尝试过的数字将不会在取到
      * 说明：即第一次次是从所有数字中随机，第二次时从前八个数字中随机，依次类推， 这样既保证随机，也不会再重复取已经不符合要求的数字，提高程序的效率
      * 这个规则是本算法的核心
      *
-     * @param time
-     * 填充的次数，0代表第一次填充
-     * @return
+     * @param time 填充的次数，0代表第一次填充
+     * @return 产生的随机数字
      */
-    private Random r = new Random();
-
     private int generateNum(int time) {
         // 第一次尝试时，初始化随机数字源数组
         if (time == 0) {

@@ -1,4 +1,4 @@
-package net.createlight.champrin.cswitch.Game;
+package net.createlight.champrin.cswitch.game;
 
 import cn.nukkit.Player;
 import cn.nukkit.block.Block;
@@ -6,9 +6,8 @@ import cn.nukkit.block.BlockID;
 import cn.nukkit.event.EventHandler;
 import cn.nukkit.event.Listener;
 import cn.nukkit.event.player.PlayerInteractEvent;
-import cn.nukkit.level.Level;
 import cn.nukkit.math.Vector3;
-import net.createlight.champrin.cswitch.Room;
+import net.createlight.champrin.cswitch.room.Room;
 
 import java.util.Random;
 
@@ -21,13 +20,15 @@ public class LightsOut extends Game implements Listener {
     @EventHandler
     public void onTouch(PlayerInteractEvent event) {
         // 判断是否在房间进行游戏
-        if (!this.gameTypeName.equals("LightsOut")) return;
+        if (!this.gameType.equals("LightsOut")) return;
         if (this.room.isFinished) return;
         if (!this.room.isStarted) return;
         Player player = event.getPlayer();
         if (!this.room.isInGame(player)) return;
+
         // 满足判断条件，终止事件带来的其他影响
         event.setCancelled(true);
+
         // 该类型游戏机制
         Block block = event.getBlock();
         if (block.getId() != BlockID.WOOL) return;
@@ -48,10 +49,10 @@ public class LightsOut extends Game implements Listener {
 
             if (abstractArray[tmpRow][tmpCol] == 1) {
                 abstractArray[tmpRow][tmpCol] = 0;
-                --this.room.rank;
+                --this.room.point;
             } else {
                 abstractArray[tmpRow][tmpCol] = 1;
-                ++this.room.rank;
+                ++this.room.point;
             }
         }
     }
@@ -88,7 +89,7 @@ public class LightsOut extends Game implements Listener {
 
     @Override
     public void checkFinish() {
-        if (this.room.rank >= area) {
+        if (this.room.point >= area) {
             this.room.isFinished = true;
         }
     }
@@ -97,28 +98,28 @@ public class LightsOut extends Game implements Listener {
     @Override
     public void buildArena() {
         switch (room.direction) {
-            case "x+":
-            case "x-":
+            case X_PLUS:
+            case X_MINUS:
                 for (int x = room.xMin; x <= room.xMax; x++) {
                     for (int y = room.yMin; y <= room.yMax; y++) {
                         int num = new Random().nextInt(2);
                         int mate = (num == 1 ? 5 : 15);
                         if (mate == 5) {
-                            ++this.room.rank;
+                            ++this.room.point;
                         }
                         Block block = Block.get(35, mate);
                         room.level.setBlock(new Vector3(x, y, room.zMin), block);
                     }
                 }
                 break;
-            case "z+":
-            case "z-":
+            case Z_PLUS:
+            case Z_MINUS:
                 for (int z = room.zMin; z <= room.zMax; z++) {
                     for (int y = room.yMin; y <= room.yMax; y++) {
                         int num = new Random().nextInt(2);
                         int mate = (num == 1 ? 5 : 15);
                         if (mate == 5) {
-                            ++this.room.rank;
+                            ++this.room.point;
                         }
                         Block block = Block.get(35, mate);
                         room.level.setBlock(new Vector3(room.xMin, y, z), block);

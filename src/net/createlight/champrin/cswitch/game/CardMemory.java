@@ -1,4 +1,4 @@
-package net.createlight.champrin.cswitch.Game;
+package net.createlight.champrin.cswitch.game;
 
 import cn.nukkit.Player;
 import cn.nukkit.block.Block;
@@ -7,7 +7,7 @@ import cn.nukkit.event.player.PlayerInteractEvent;
 import cn.nukkit.level.Level;
 import cn.nukkit.math.Vector3;
 import net.createlight.champrin.cswitch.untils.TimeBlockElement;
-import net.createlight.champrin.cswitch.Room;
+import net.createlight.champrin.cswitch.room.Room;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -53,7 +53,7 @@ public class CardMemory extends Game {
     @EventHandler
     public void onTouch(PlayerInteractEvent event) {
         if (this.room.isFinished) return;
-        if (this.gameTypeName.equals("CardMemory")) {
+        if (this.gameType.equals("CardMemory")) {
             if (!this.room.isStarted) return;
             Player player = event.getPlayer();
             if (this.room.isInGame(player)) {
@@ -64,12 +64,12 @@ public class CardMemory extends Game {
                     firstClick = block;
                     firstL = Math.abs(room.yMax - firstClick.getFloorY());
                     switch (room.direction) {
-                        case "x+":
-                        case "x-":
+                        case X_PLUS:
+                        case X_MINUS:
                             firstW = Math.abs(room.xMax - firstClick.getFloorX());
                             break;
-                        case "z+":
-                        case "z-":
+                        case Z_PLUS:
+                        case Z_MINUS:
                             firstW = Math.abs(room.zMax - firstClick.getFloorZ());
                             break;
                         default:
@@ -81,12 +81,12 @@ public class CardMemory extends Game {
                     int nextL = Math.abs(room.yMax - block.getFloorY());
                     int nextW;
                     switch (room.direction) {
-                        case "x+":
-                        case "x-":
+                        case X_PLUS:
+                        case X_MINUS:
                             nextW = Math.abs(room.xMax - block.getFloorX());
                             break;
-                        case "z+":
-                        case "z-":
+                        case Z_PLUS:
+                        case Z_MINUS:
                             nextW = Math.abs(room.zMax - block.getFloorZ());
                             break;
                         default:
@@ -95,7 +95,7 @@ public class CardMemory extends Game {
                     level.setBlock(block, Block.get(Block.WOOL, value[nextL][nextW]));
                     this.room.plugin.getServer().getScheduler().scheduleRepeatingTask(new TimeBlockElement(3, block), 20);
                     if (value[firstL][firstW] == value[nextL][nextW]) {
-                        this.room.rank = room.rank + 2;
+                        this.room.point = room.point + 2;
                         checkFinish();
                         level.setBlock(firstClick, Block.get(Block.GLASS, 0));
                         level.setBlock(block, Block.get(Block.GLASS, 0));
@@ -112,14 +112,14 @@ public class CardMemory extends Game {
             i = i + 1;
         }
         switch (room.direction) {
-            case "x+":
-            case "x-":
+            case X_PLUS:
+            case X_MINUS:
                 if (nextBlock.getFloorX() == firstClick.getFloorX()) {
                     i = i + 1;
                 }
                 break;
-            case "z+":
-            case "z-":
+            case Z_PLUS:
+            case Z_MINUS:
                 if (nextBlock.getFloorZ() == firstClick.getFloorZ()) {
                     i = i + 1;
                 }
@@ -130,9 +130,9 @@ public class CardMemory extends Game {
 
     @Override
     public void checkFinish() {
-        if (room.rank >= area) {
+        if (room.point >= area) {
             this.room.isFinished = true;
-            this.room.rank = 0;
+            this.room.point = 0;
         }
     }
 
@@ -140,16 +140,16 @@ public class CardMemory extends Game {
     public void buildArena() {
         shuffleLayout();
         switch (room.direction) {
-            case "x+":
-            case "x-":
+            case X_PLUS:
+            case X_MINUS:
                 for (int x = room.xMin; x <= room.xMax; x++) {
                     for (int y = room.yMin; y <= room.yMax; y++) {
                         room.level.setBlock(new Vector3(x, y, room.zMin), Block.get(35, 0));
                     }
                 }
                 break;
-            case "z+":
-            case "z-":
+            case Z_PLUS:
+            case Z_MINUS:
                 for (int z = room.zMin; z <= room.zMax; z++) {
                     for (int y = room.yMin; y <= room.yMax; y++) {
                         room.level.setBlock(new Vector3(room.xMin, y, z), Block.get(35, 0));

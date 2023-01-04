@@ -1,4 +1,4 @@
-package net.createlight.champrin.cswitch.Game;
+package net.createlight.champrin.cswitch.game;
 
 import cn.nukkit.Player;
 import cn.nukkit.block.Block;
@@ -7,7 +7,7 @@ import cn.nukkit.event.block.BlockBreakEvent;
 import cn.nukkit.event.block.BlockPlaceEvent;
 import cn.nukkit.event.player.PlayerInteractEvent;
 import cn.nukkit.math.Vector3;
-import net.createlight.champrin.cswitch.Room;
+import net.createlight.champrin.cswitch.room.Room;
 import net.createlight.champrin.cswitch.untils.ShuDuBuilder;
 
 import java.util.LinkedHashMap;
@@ -30,7 +30,7 @@ public class Sudoku extends Game {
     @EventHandler
     public void onBreak(BlockBreakEvent event) {
         if (this.room.isFinished) return;
-        if (this.gameTypeName.equals("Sudoku")) {
+        if (this.gameType.equals("Sudoku")) {
             Player player = event.getPlayer();
             if (this.room.isInGame(player)) {
                 Block block = event.getBlock();
@@ -42,7 +42,7 @@ public class Sudoku extends Game {
                 if (this.isInArena(position)) {
                     if (!this.check.get(position)) return;
                     if (isTrue(position, block.getDamage())) {
-                        this.room.rank = room.rank - 1;
+                        this.room.point = room.point - 1;
                         this.check.put(position, false);
                     }
                 } else {
@@ -55,7 +55,7 @@ public class Sudoku extends Game {
     @EventHandler
     public void onPlace(BlockPlaceEvent event) {
         if (this.room.isFinished) return;
-        if (this.gameTypeName.equals("Sudoku")) {
+        if (this.gameType.equals("Sudoku")) {
             Player player = event.getPlayer();
             if (this.room.isInGame(player)) {
                 Block block = event.getBlock();
@@ -77,7 +77,7 @@ public class Sudoku extends Game {
     public void updateBlock(Block block, String position) {
         int value = block.getDamage();
         if (isTrue(position, value)) {
-            this.room.rank = room.rank + 1;
+            this.room.point = room.point + 1;
             this.check.put(position, true);
         }
         checkFinish();
@@ -105,7 +105,7 @@ public class Sudoku extends Game {
             l = Math.abs(ya - y) - 2;
         }
         switch (room.direction) {
-            case "x+":
+            case X_PLUS:
                 if (x < xi + 3) {
                     h = Math.abs(x - xi);
                 } else if (x > xi + 3 && x < xi + 7) {
@@ -114,7 +114,7 @@ public class Sudoku extends Game {
                     h = Math.abs(x - xi) - 2;
                 }
                 return Math.abs(l) + "-" + Math.abs(h);
-            case "x-":
+            case X_MINUS:
                 if (x < xa - 3) {
                     h = Math.abs(xa - x);
                 } else if (x > xa - 3 && x < xa - 7) {
@@ -123,7 +123,7 @@ public class Sudoku extends Game {
                     h = Math.abs(xa - x) - 2;
                 }
                 return Math.abs(l) + "-" + Math.abs(h);
-            case "z+":
+            case Z_PLUS:
                 if (z < zi + 3) {
                     h = Math.abs(z - zi);
                 } else if (z > zi + 3 && z < zi + 7) {
@@ -132,7 +132,7 @@ public class Sudoku extends Game {
                     h = Math.abs(z - zi) - 2;
                 }
                 return Math.abs(l) + "-" + Math.abs(h);
-            case "z-":
+            case Z_MINUS:
                 if (z < za - 3) {
                     h = Math.abs(za - z);
                 } else if (z > za - 3 && z < za - 7) {
@@ -148,7 +148,7 @@ public class Sudoku extends Game {
 
     @Override
     public void checkFinish() {
-        if (this.room.rank >= value.size()) {
+        if (this.room.point >= value.size()) {
             this.room.isFinished = true;
         }
     }
@@ -164,7 +164,7 @@ public class Sudoku extends Game {
         }
         int a = 0, b = 0, h = 0;
         switch (room.direction) {
-            case "x+":
+            case X_PLUS:
                 for (int y = room.yMax; y >= room.yMin; y--) {
                     b = b + 1;
                     if (b % 3 == 0) {
@@ -187,7 +187,7 @@ public class Sudoku extends Game {
                     }
                 }
                 break;
-            case "x-":
+            case X_MINUS:
                 for (int y = room.yMax; y >= room.yMin; y--) {
                     b = b + 1;
                     if (b % 3 == 0) {
@@ -206,7 +206,7 @@ public class Sudoku extends Game {
                     }
                 }
                 break;
-            case "z+":
+            case Z_PLUS:
                 for (int y = room.yMax; y >= room.yMin; y--) {
                     ++b;
                     int l = 0;
@@ -230,7 +230,7 @@ public class Sudoku extends Game {
                     h++;
                 }
                 break;
-            case "z-":
+            case Z_MINUS:
                 for (int y = room.yMax; y >= room.yMin; y--) {
                     b = b + 1;
                     if (b % 3 == 0) {

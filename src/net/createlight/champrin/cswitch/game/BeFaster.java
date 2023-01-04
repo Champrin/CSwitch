@@ -1,11 +1,11 @@
-package net.createlight.champrin.cswitch.Game;
+package net.createlight.champrin.cswitch.game;
 
 import cn.nukkit.Player;
 import cn.nukkit.block.Block;
 import cn.nukkit.event.EventHandler;
 import cn.nukkit.event.player.PlayerInteractEvent;
 import cn.nukkit.math.Vector3;
-import net.createlight.champrin.cswitch.Room;
+import net.createlight.champrin.cswitch.room.Room;
 
 public class BeFaster extends Game {
 
@@ -16,7 +16,7 @@ public class BeFaster extends Game {
     @EventHandler
     public void onTouch(PlayerInteractEvent event) {
         // 房间游戏条件限制
-        if (!this.gameTypeName.equals("BeFaster")) return;
+        if (!this.gameType.equals("BeFaster")) return;
         if (this.room.isFinished) return;
         if (!this.room.isStarted) return;
         Player player = event.getPlayer();
@@ -28,7 +28,7 @@ public class BeFaster extends Game {
         if (!this.room.isInArena(block)) return;
 
         event.setCancelled(true);
-        this.room.rank = room.rank + 1;
+        this.room.point = room.point + 1;
         block.level.setBlock(block, Block.get(35, 0));
     }
 
@@ -39,16 +39,16 @@ public class BeFaster extends Game {
     @Override
     public void buildArena() {
         switch (room.direction) {
-            case "x+":
-            case "x-":
+            case X_PLUS:
+            case X_MINUS:
                 for (int x = room.xMin; x <= room.xMax; x++) {
                     for (int y = room.yMin; y <= room.yMax; y++) {
                         room.level.setBlock(new Vector3(x, y, room.zMin), Block.get(35, 0));
                     }
                 }
                 break;
-            case "z+":
-            case "z-":
+            case Z_PLUS:
+            case Z_MINUS:
                 for (int z = room.zMin; z <= room.zMax; z++) {
                     for (int y = room.yMin; y <= room.yMax; y++) {
                         room.level.setBlock(new Vector3(room.xMin, y, z), Block.get(35, 0));
