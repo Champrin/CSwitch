@@ -1,35 +1,58 @@
 game-fail: ""
-game-start: ""
-game-stop: ""
-game-prepare: "§e游戏即将开始.."
 
+game-start: ""
+
+game-stop: ""
+
+# {TIME} 表示距离游戏开始还有多少时间，单位为秒
+game-prepare: "§f>> §a{TIME}§f << 游戏即将开始.."
+
+# {PREFIX} 表示插件自定义的别称
+# {GAME_TYPE} 表示该房间的游戏类型
+# {ROOM_ID} 表示该房间的ID
 sign-join-free-line1: "{PREFIX}"
 sign-join-free-line2: "{GAME_TYPE}"
 sign-join-free-line3: "§a点击加入游戏"
 sign-join-free-line4: "§f房间ID:{ROOM_ID}"
 
+# {PREFIX} 表示插件自定义的别称
+# {GAME_TYPE} 表示该房间的游戏类型
+# {PLAYER} 表示正在在该房间进行游戏的玩家名称
+# {ROOM_ID} 表示该房间的ID
 sign-join-not-free-line1: "{PREFIX}"
 sign-join-not-free-line2: "{GAME_TYPE}"
 sign-join-not-free-line3: "§f{PLAYER}§a正在游戏"
 sign-join-not-free-line4: "§f房间ID:{ROOM_ID}"
 
+# {PREFIX} 表示插件自定义的别称
+# {GAME_TYPE} 表示该房间的游戏类型
+# {ROOM_ID} 表示该房间的ID
 sign-rule-line1: "{PREFIX}"
 sign-rule-line2: "{GAME_TYPE}"
 sign-rule-line3: "§a点击查看游戏介绍"
 sign-rule-line4: "§f房间ID:{ROOM_ID}"
 
+# {GAME_TYPE} 表示该房间的游戏类型
+# {TIME} 表示游戏从开始到现在已花费的时间
+# {SCORE} 表示玩家在游戏中已获得的分数
 count-type-gaming:
   - "{GAME_TYPE}>> §a§l游戏计时: §c{TIME}s  §e获得分数: §6{SCORE}"
 
+# {TIME} 表示游戏从开始到现在已花费的时间
+# {SCORE} 表示玩家在游戏中已获得的分数
 count-type-finish:
   - "§f======================="
   - ">>  §a完成游戏所用时间: §6§l{TIME}"
   - ">>  §f你的得分: §6§l{SCORE}"
   - "§f======================="
 
+# {GAME_TYPE} 表示该房间的游戏类型
+# {TIME} 表示游戏剩余的时间
+# {SCORE} 表示玩家在游戏中已获得的分数
 countdown-type-gaming:
   - "{GAME_TYPE}>> §a§l游戏计时: §c{TIME}s  §e获得分数: §6{SCORE}"
 
+# {SCORE} 表示玩家在游戏中已获得的分数
 countdown-type-finish:
   - "§f======================="
   - ">>  §f你的得分: §6§l{SCORE}"

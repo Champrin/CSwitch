@@ -1,5 +1,6 @@
 package cn.createlight.cswitch.game;
 
+import cn.createlight.cswitch.CSwitchGameType;
 import cn.nukkit.Player;
 import cn.nukkit.block.Block;
 import cn.nukkit.event.EventHandler;
@@ -19,17 +20,21 @@ public class RemoveAll extends Game implements Listener {
 
     @EventHandler
     public void onTouch(PlayerInteractEvent event) {
+        // 判断是否在房间进行游戏
+        if (this.room.gameType != CSwitchGameType.REMOVE_ALL) return;
         if (this.room.isFinished) return;
-        if (this.gameType.equals("RemoveAll")) {
-            Block block = event.getBlock();
-            Player player = event.getPlayer();
-            if (this.room.isInGame(player)) {
-                if (this.room.isInArena(block)) {
-                    event.setCancelled(true);
-                    this.updateBlock(block);
-                }
-            }
-        }
+        if (!this.room.isStarted) return;
+        Player player = event.getPlayer();
+        if (!this.room.isInGame(player)) return;
+
+        // 满足判断条件，终止事件带来的其他影响
+        event.setCancelled(true);
+
+        // 该类型游戏机制
+        Block block = event.getBlock();
+        if (!this.room.isInArena(block)) return;
+
+        this.updateBlock(block);
     }
 
 
@@ -112,7 +117,7 @@ public class RemoveAll extends Game implements Listener {
     }
 
     public void checkFinish() {
-        if (check >= area) {
+        if (check >= room.area) {
             this.room.isFinished = true;
             this.count = 0;
             this.check = 0;

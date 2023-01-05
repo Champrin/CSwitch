@@ -21,7 +21,7 @@ public class OnOneLine extends Game implements Listener {
     @EventHandler
     public void onTouch(PlayerInteractEvent event) {
         // 房间游戏条件限制
-        if (this.gameType != CSwitchGameType.MAKE_A_LINE) return;
+        if (this.room.gameType != CSwitchGameType.MAKE_A_LINE) return;
         if (this.room.isFinished) return;
         if (!this.room.isStarted) return;
         Player player = event.getPlayer();

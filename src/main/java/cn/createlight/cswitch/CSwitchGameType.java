@@ -15,7 +15,10 @@ public enum CSwitchGameType {
     THE_2048,           // 2048
     MAKE_A_LINE,        // 宾果消消乐
     GREEDY_SNAKE,       // 贪吃蛇
-    TETRIS;             // 俄罗斯方块
+    TETRIS,             // 俄罗斯方块
+    //COLOR_MEMORY,       //颜色记忆
+    //BUILD_MEMORY,       //建筑记忆
+    ;
 
     public String toName() {
         return name().replace("_", "-");

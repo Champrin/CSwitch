@@ -1,5 +1,6 @@
 package cn.createlight.cswitch.game;
 
+import cn.createlight.cswitch.CSwitchGameType;
 import cn.nukkit.Player;
 import cn.nukkit.block.Block;
 import cn.nukkit.event.EventHandler;
@@ -120,29 +121,33 @@ public class Jigsaw extends Game implements Listener {
 
     @EventHandler
     public void onTouch(PlayerInteractEvent event) {
+        // 判断是否在房间进行游戏
+        if (this.room.gameType != CSwitchGameType.JIGSAW) return;
         if (this.room.isFinished) return;
-        if (this.gameType.equals("Jigsaw")) {
-            if (!this.room.isStarted) return;
-            Player player = event.getPlayer();
-            if (this.room.isInGame(player)) {
-                Block block = event.getBlock();
-                int x = (int) Math.round(Math.floor(block.x));
-                int y = (int) Math.round(Math.floor(block.y));
-                int z = (int) Math.round(Math.floor(block.z));
-                if (this.room.isInArena(block)) {
-                    event.setCancelled(true);
-                    Vector3 v3 = new Vector3(x, y, z);
-                    Item item = player.getInventory().getItemInHand();
-                    if (item.getId() == 0) return;
-                    String Hand = item.getId() + "-" + item.getDamage();
-                    if (layout.contains(Hand)) {
-                        int a = layout.indexOf(Hand);
-                        if (Pos.get(a).equals(v3)) {
-                            this.room.point = this.room.point + 1;
-                            updateBlock(block, Hand);
-                        }
-                    }
-                }
+        if (!this.room.isStarted) return;
+        Player player = event.getPlayer();
+        if (!this.room.isInGame(player)) return;
+
+        // 满足判断条件，终止事件带来的其他影响
+        event.setCancelled(true);
+
+        // 该类型游戏机制
+        Block block = event.getBlock();
+        if (!this.room.isInArena(block)) return;
+
+        int x = (int) Math.round(Math.floor(block.x));
+        int y = (int) Math.round(Math.floor(block.y));
+        int z = (int) Math.round(Math.floor(block.z));
+        event.setCancelled(true);
+        Vector3 v3 = new Vector3(x, y, z);
+        Item item = player.getInventory().getItemInHand();
+        if (item.getId() == 0) return;
+        String Hand = item.getId() + "-" + item.getDamage();
+        if (layout.contains(Hand)) {
+            int a = layout.indexOf(Hand);
+            if (Pos.get(a).equals(v3)) {
+                this.room.point = this.room.point + 1;
+                updateBlock(block, Hand);
             }
         }
     }

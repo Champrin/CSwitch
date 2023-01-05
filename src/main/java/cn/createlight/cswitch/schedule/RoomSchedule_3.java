@@ -1,74 +1,81 @@
 package cn.createlight.cswitch.schedule;
 
 
-import cn.nukkit.Player;
+import cn.createlight.cswitch.config.ConfigManager;
+import cn.createlight.cswitch.config.LanguageConfigKey;
+import cn.createlight.cswitch.utils.StringUtils;
 import cn.nukkit.block.Block;
 import cn.nukkit.level.Level;
 import cn.nukkit.math.Vector3;
 import cn.nukkit.scheduler.Task;
 import cn.createlight.cswitch.room.Room;
-import cn.createlight.cswitch.untils.Countdown;
-import cn.createlight.cswitch.untils.TimeBlockElement;
+import cn.createlight.cswitch.utils.Countdown;
+import cn.createlight.cswitch.utils.TimeBlockElement;
+import cn.nukkit.utils.Config;
 
+import java.util.List;
 import java.util.Random;
 
 public class RoomSchedule_3 extends Task {
-
-    private int startTime;
-    private int spendTime;
-    private final int gameTime;
     private final Room room;
-    private final int xi;
-    private final int xa;
-    private final int yi;
-    private final int ya;
-    private final int zi;
-    private final int za;
-    private int grade = 60;//毫秒
+    private int prepareTimeCountDown;
+    private int gameTimeCountDown;
+    private final String gamingTipFormat;
+    private final String finishTipFormat;
+
     private final Level level;
+    private final int xMin, xMax;
+    private final int yMin, yMax;
+    private final int zMin, zMax;
+    private int grade = 60; // 难度等级，毫秒，值越低越难
+
 
     public RoomSchedule_3(Room room) {
         this.room = room;
-        this.startTime = Integer.parseInt((String) room.data.get("start_time")) + 1;
-        this.gameTime = (int) room.data.get("game_time");
-        this.spendTime = gameTime;
+        this.prepareTimeCountDown = room.prepareTime;
+        this.gameTimeCountDown = room.gameTime;
         this.level = room.level;
-        this.xi = room.xMin;
-        this.xa = room.xMax;
-        this.yi = room.yMin;
-        this.ya = room.yMax;
-        this.zi = room.zMin;
-        this.za = room.zMax;
+        this.xMin = room.xMin;
+        this.xMax = room.xMax;
+        this.yMin = room.yMin;
+        this.yMax = room.yMax;
+        this.zMin = room.zMin;
+        this.zMax = room.zMax;
+
+        gamingTipFormat = StringUtils.combineStringList(
+                ConfigManager.getConfig(ConfigManager.ConfigName.GAME_TIP)
+                        .getStringList(LanguageConfigKey.COUNTDOWN_TYPE_GAMING.toConfigKey())
+        );
+        finishTipFormat = StringUtils.combineStringList(
+                ConfigManager.getConfig(ConfigManager.ConfigName.GAME_TIP)
+                        .getStringList(LanguageConfigKey.COUNTDOWN_TYPE_FINISH.toConfigKey())
+        );
     }
 
     @Override
     public void onRun(int tick) {
         if (!this.room.isStarted) {
             if (this.room.gamePlayer != null) {
-                this.startTime = startTime - 1;
-                Player p = room.gamePlayer;
-                p.sendPopup(Countdown.countDown(startTime));
-                if (this.startTime <= 0) {
+                --this.prepareTimeCountDown;
+                room.gamePlayer.sendPopup(Countdown.countDown(prepareTimeCountDown));
+                if (this.prepareTimeCountDown <= 0) {
                     this.room.startGame();
-                    this.spendTime = (int) room.data.get("game_time");
-                    this.startTime = Integer.parseInt((String) this.room.data.get("start_time")) + 1;
+                    this.prepareTimeCountDown = room.prepareTime;
                 }
             } else {
-                this.startTime = Integer.parseInt((String) this.room.data.get("start_time")) + 1;
-                this.spendTime = (int) room.data.get("game_time");
+                this.prepareTimeCountDown = room.prepareTime;
             }
-        }
-        if (this.room.isStarted) {
-            this.spendTime = spendTime - 1;
+        } else {
+            --this.gameTimeCountDown;
             sendTarget();
-            if (spendTime <= gameTime * 0.8) {
+            if (gameTimeCountDown <= gameTimeCountDown * 0.8) {
                 sendTarget();
                 this.grade = 50;
-            } else if (spendTime <= gameTime * 0.5) {
+            } else if (gameTimeCountDown <= gameTimeCountDown * 0.5) {
                 sendTarget();
                 sendTarget();
                 this.grade = 40;
-            } else if (spendTime <= gameTime * 0.2) {
+            } else if (gameTimeCountDown <= gameTimeCountDown * 0.2) {
                 sendTarget();
                 sendTarget();
                 sendTarget();
@@ -77,39 +84,40 @@ public class RoomSchedule_3 extends Task {
 
             if (this.room.gamePlayer == null) {
                 this.room.stopGame();
-                this.spendTime = (int) room.data.get("game_time");
-            } else if (this.spendTime <= 0) {
-                room.gamePlayer.sendMessage("§f=======================");
-                room.gamePlayer.sendMessage(">>  §f你的得分: §6§l" + this.room.point);
-                room.gamePlayer.sendMessage("§f=======================");
+                this.gameTimeCountDown = room.gameTime;
+            } else if (this.gameTimeCountDown <= 0) {
+                room.gamePlayer.sendMessage(finishTipFormat
+                        .replace("{SCORE}", String.valueOf(this.room.point)));
                 // room.plugin.checkRank(room.gameType, room.rank, room.gamePlayer.getName());
                 this.room.stopGame();
-                this.spendTime = (int) room.data.get("game_time");
+                this.gameTimeCountDown = room.gameTime;
             } else {
-                room.gamePlayer.sendPopup(room.gameType + ">> §a§lRemaining time:§c" + spendTime + "s  §eYour point:§6" + this.room.point);
+                room.gamePlayer.sendPopup(gamingTipFormat
+                        .replace("{TIME}", String.valueOf(gameTimeCountDown))
+                        .replace("{SCORE}", String.valueOf(this.room.point)));
             }
         }
     }
 
-    public Vector3 getRandPosVector3()//在游戏区域内随机获取坐标
+    private Vector3 getRandPosVector3()//在游戏区域内随机获取坐标
     {
-        int x = xi;
-        int z = zi;
-        int y = new Random().nextInt(ya - yi + 1) + yi;
+        int x = xMin;
+        int z = zMin;
+        int y = new Random().nextInt(yMax - yMin + 1) + yMin;
         switch (room.direction) {
             case X_PLUS:
             case X_MINUS:
-                x = new Random().nextInt(xa - xi + 1) + xi;
+                x = new Random().nextInt(xMax - xMin + 1) + xMin;
                 break;
             case Z_PLUS:
             case Z_MINUS:
-                z = new Random().nextInt(za - zi + 1) + zi;
+                z = new Random().nextInt(zMax - zMin + 1) + zMin;
                 break;
         }
         return new Vector3(x, y, z);
     }
 
-    public void sendTarget() {
+    private void sendTarget() {
         Block block = level.getBlock(getRandPosVector3());
         level.setBlock(block, Block.get(35, 14));
         this.room.plugin.getServer().getScheduler().scheduleRepeatingTask(new TimeBlockElement(grade, block), 1);

@@ -27,7 +27,7 @@ public class BlockPlay_4 extends Game implements Listener {
     @EventHandler
     public void onTouch(PlayerInteractEvent event) {
         if (this.room.isFinished) return;
-        if (this.gameType.equals("BlockPlay_4")) {
+        if (room.gameType.equals("BlockPlay_4")) {
             if (!this.room.isStarted) return;
             Block block = event.getBlock();
             Player player = event.getPlayer();

@@ -1,6 +1,7 @@
 package cn.createlight.cswitch.game;
 
-import cn.createlight.cswitch.untils.ShuDuBuilder;
+import cn.createlight.cswitch.CSwitchGameType;
+import cn.createlight.cswitch.utils.ShuDuBuilder;
 import cn.nukkit.Player;
 import cn.nukkit.block.Block;
 import cn.nukkit.event.EventHandler;
@@ -29,44 +30,55 @@ public class Sudoku extends Game {
 
     @EventHandler
     public void onBreak(BlockBreakEvent event) {
+        // 房间游戏条件限制
+        if (this.room.gameType != CSwitchGameType.SUDOKU) return;
         if (this.room.isFinished) return;
-        if (this.gameType.equals("Sudoku")) {
-            Player player = event.getPlayer();
-            if (this.room.isInGame(player)) {
-                Block block = event.getBlock();
-                if (block.getDamage() == 15) {
-                    event.setCancelled(true);
-                    return;
-                }
-                String position = getPosition(block);
-                if (this.isInArena(position)) {
-                    if (!this.check.get(position)) return;
-                    if (isTrue(position, block.getDamage())) {
-                        this.room.point = room.point - 1;
-                        this.check.put(position, false);
-                    }
-                } else {
-                    event.setCancelled(true);
-                }
+        if (!this.room.isStarted) return;
+        Player player = event.getPlayer();
+        if (!this.room.isInGame(player)) return;
+
+        // 满足判断条件，终止事件带来的其他影响
+        event.setCancelled(true);
+
+        // 该类型游戏机制
+        Block block = event.getBlock();
+        if (block.getDamage() == 15) {
+            event.setCancelled(true);
+            return;
+        }
+        String position = getPosition(block);
+        if (this.isInArena(position)) {
+            if (!this.check.get(position)) return;
+            if (isTrue(position, block.getDamage())) {
+                this.room.point = room.point - 1;
+                this.check.put(position, false);
             }
+        } else {
+            event.setCancelled(true);
         }
     }
 
+
     @EventHandler
     public void onPlace(BlockPlaceEvent event) {
+        // 房间游戏条件限制
+        if (this.room.gameType != CSwitchGameType.SUDOKU) return;
         if (this.room.isFinished) return;
-        if (this.gameType.equals("Sudoku")) {
-            Player player = event.getPlayer();
-            if (this.room.isInGame(player)) {
-                Block block = event.getBlock();
-                String position = getPosition(block);
-                if (this.isInArena(position)) {
-                    if (check.get(position)) return;
-                    updateBlock(block, position);
-                } else {
-                    event.setCancelled(true);
-                }
-            }
+        if (!this.room.isStarted) return;
+        Player player = event.getPlayer();
+        if (!this.room.isInGame(player)) return;
+
+        // 满足判断条件，终止事件带来的其他影响
+        event.setCancelled(true);
+
+        // 该类型游戏机制
+        Block block = event.getBlock();
+        String position = getPosition(block);
+        if (this.isInArena(position)) {
+            if (check.get(position)) return;
+            updateBlock(block, position);
+        } else {
+            event.setCancelled(true);
         }
     }
 
@@ -250,5 +262,104 @@ public class Sudoku extends Game {
                 break;
         }
         buildOperation(true);
+    }
+
+    @Override
+    public void setArenaFrame() {
+
+        int a = 0, b = 0;
+        switch (room.direction) {
+            case X_PLUS: {
+                for (int y = room.yMin; y <= room.yMax; y++) {
+                    for (int x = room.xMin; x <= room.xMax; x++) {
+                        room.level.setBlock(new Vector3(x, y, room.zMin), Block.get(35, 15));
+                    }
+                }
+                for (int y = room.yMax - 1; y >= room.yMin + 1; y--) {
+                    ++b;
+                    for (int x = room.xMin + 1; x <= room.zMax - 1; x++) {
+                        room.level.setBlock(new Vector3(x, y, room.zMin), Block.get(0, 0));
+                        ++a;
+                        if (a == 3) {
+                            ++x;
+                            a = 0;
+                        }
+                    }
+                    if (b == 3) {
+                        --y;
+                        b = 0;
+                    }
+                }
+            }
+            break;
+            case X_MINUS: {
+                for (int y = room.yMin; y <= room.yMax; y++) {
+                    for (int x = room.xMin; x <= room.xMax; x++) {
+                        room.level.setBlock(new Vector3(x, y, room.zMin), Block.get(35, 15));
+                    }
+                }
+                for (int y = room.yMax - 1; y >= room.yMin + 1; y--) {
+                    ++b;
+                    for (int x = room.xMax - 1; x >= room.xMin + 1; x--) {
+                        room.level.setBlock(new Vector3(x, y, room.zMin), Block.get(0, 0));
+                        ++a;
+                        if (a == 3) {
+                            --x;
+                            a = 0;
+                        }
+                    }
+                    if (b == 3) {
+                        --y;
+                        b = 0;
+                    }
+                }
+            }
+            break;
+            case Z_PLUS: {
+                for (int y = room.yMin; y <= room.yMax; y++) {
+                    for (int z = room.zMin; z <= room.zMax; z++) {
+                        room.level.setBlock(new Vector3(room.xMin, y, z), Block.get(35, 15));
+                    }
+                }
+                for (int y = room.yMax - 1; y >= room.yMin + 1; y--) {
+                    ++b;
+                    for (int z = room.zMin + 1; z <= room.zMax - 1; z++) {
+                        room.level.setBlock(new Vector3(room.xMin, y, z), Block.get(0, 0));
+                        ++a;
+                        if (a == 3) {
+                            ++z;
+                            a = 0;
+                        }
+                    }
+                    if (b == 3) {
+                        --y;
+                        b = 0;
+                    }
+                }
+            }
+            break;
+            case Z_MINUS: {
+                for (int y = room.yMin; y <= room.yMax; y++) {
+                    for (int z = room.zMin; z <= room.zMax; z++) {
+                        room.level.setBlock(new Vector3(room.xMin, y, z), Block.get(35, 15));
+                    }
+                }
+                for (int y = room.yMax - 1; y >= room.yMin + 1; y--) {
+                    ++b;
+                    for (int z = room.zMax - 1; z >= room.zMin + 1; z--) {
+                        room.level.setBlock(new Vector3(room.xMin, y, z), Block.get(0, 0));
+                        ++a;
+                        if (a == 3) {
+                            --z;
+                            a = 0;
+                        }
+                    }
+                    if (b == 3) {
+                        --y;
+                        b = 0;
+                    }
+                }
+            }
+        }
     }
 }

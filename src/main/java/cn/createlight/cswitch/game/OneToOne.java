@@ -1,5 +1,6 @@
 package cn.createlight.cswitch.game;
 
+import cn.createlight.cswitch.CSwitchGameType;
 import cn.nukkit.Player;
 import cn.nukkit.block.Block;
 import cn.nukkit.event.EventHandler;
@@ -19,7 +20,7 @@ public class OneToOne extends Game implements Listener {
     @EventHandler
     public void onTouch(PlayerInteractEvent event) {
         // 判断是否在房间进行游戏
-        if (!this.gameType.equals("OneToOne")) return;
+        if (this.room.gameType != CSwitchGameType.ONE_TO_ONE) return;
         if (this.room.isFinished) return;
         if (!this.room.isStarted) return;
         Player player = event.getPlayer();
@@ -49,7 +50,7 @@ public class OneToOne extends Game implements Listener {
 
     @Override
     public void checkFinish() {
-        if (count >= area) {
+        if (count >= room.area) {
             this.room.isFinished = true;
             this.count = 0;
         }

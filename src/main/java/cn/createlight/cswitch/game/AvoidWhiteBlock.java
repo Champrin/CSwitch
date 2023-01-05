@@ -1,5 +1,6 @@
 package cn.createlight.cswitch.game;
 
+import cn.createlight.cswitch.CSwitchGameType;
 import cn.nukkit.Player;
 import cn.nukkit.block.Block;
 import cn.nukkit.event.EventHandler;
@@ -18,7 +19,7 @@ public class AvoidWhiteBlock extends Game {
 
     public AvoidWhiteBlock(Room room) {
         super(room);
-        this.count = (int) this.room.data.get("times");
+        this.count = (int) room.additions.get(0);
         this.useTimes = count;
         getMaxAndMin();
     }
@@ -44,31 +45,36 @@ public class AvoidWhiteBlock extends Game {
 
     @EventHandler
     public void onTouch(PlayerInteractEvent event) {
+        // 房间游戏条件限制
+        if (this.room.gameType != CSwitchGameType.AVOID_WHITE_BLOCK) return;
         if (this.room.isFinished) return;
-        if (this.gameType.equals("AvoidWhiteBlock")) {
-            Block block = event.getBlock();
-            Player player = event.getPlayer();
-            if (this.room.isInGame(player)) {
-                if (this.room.isInArena(block)) {
-                    if (block.getDamage() == 15) {
-                        event.setCancelled(true);
-                        if ((int) Math.round(Math.floor(block.y)) != minY) return;
-                        this.room.point = room.point + 1;
-                        checkFinish();
-                        updateBlock(block);
-                    } else {
-                        this.room.gamePlayer.sendMessage(">>  游戏失败");
-                        this.room.gamePlayer = null;
-                    }
-                }
-            }
+        if (!this.room.isStarted) return;
+        Player player = event.getPlayer();
+        if (!this.room.isInGame(player)) return;
+
+        // 满足判断条件，终止事件带来的其他影响
+        event.setCancelled(true);
+
+        // 该类型游戏机制
+        Block block = event.getBlock();
+        if (!this.room.isInArena(block)) return;
+
+        if (block.getDamage() == 15) {
+            event.setCancelled(true);
+            if ((int) Math.round(Math.floor(block.y)) != minY) return;
+            this.room.point = room.point + 1;
+            checkFinish();
+            updateBlock(block);
+        } else {
+            this.room.gamePlayer.sendMessage(">>  游戏失败");
+            this.room.gamePlayer = null;
         }
     }
 
     public void updateBlock(Block block) {
         Level level = block.level;
         this.useTimes = useTimes - 1;
-        int newW = new Random().nextInt(width);
+        int newW = new Random().nextInt(room.width);
         switch (room.direction) {
             case X_PLUS:
                 for (int x = min; x <= max; x++) {
@@ -81,7 +87,7 @@ public class AvoidWhiteBlock extends Game {
                         level.setBlock(new Vector3(x, y - 1, axis), b);
                     }
                 }
-                if (useTimes < length) {
+                if (useTimes < room.length) {
                     for (int x = min; x <= max; x++) {
                         level.setBlock(new Vector3(x, maxY, axis), greenWoolBlock);
                     }
@@ -103,7 +109,7 @@ public class AvoidWhiteBlock extends Game {
                         level.setBlock(new Vector3(x, y - 1, axis), b);
                     }
                 }
-                if (useTimes < length) {
+                if (useTimes < room.length) {
                     for (int x = min; x <= max; x++) {
                         level.setBlock(new Vector3(x, maxY, axis), greenWoolBlock);
                     }
@@ -124,7 +130,7 @@ public class AvoidWhiteBlock extends Game {
                         level.setBlock(new Vector3(this.axis, y - 1, z), b);
                     }
                 }
-                if (useTimes < length) {
+                if (useTimes < room.length) {
                     for (int z = min; z <= max; z++) {
                         level.setBlock(new Vector3(this.axis, maxY, z), greenWoolBlock);
                     }
@@ -146,7 +152,7 @@ public class AvoidWhiteBlock extends Game {
                         level.setBlock(new Vector3(this.axis, y - 1, z), b);
                     }
                 }
-                if (useTimes < length) {
+                if (useTimes < room.length) {
                     for (int z = min; z <= max; z++) {
                         level.setBlock(new Vector3(this.axis, maxY, z), greenWoolBlock);
                     }
@@ -176,7 +182,7 @@ public class AvoidWhiteBlock extends Game {
                     for (int x = room.xMin; x <= room.xMax; x++) {
                         room.level.setBlock(new Vector3(x, y, room.zMin), whiteWoolBlock);
                     }
-                    int x = new Random().nextInt(width);
+                    int x = new Random().nextInt(room.width);
                     room.level.setBlock(new Vector3(room.xMin + x, y, room.zMin), blackWoolBlock);
                 }
                 break;
@@ -186,7 +192,7 @@ public class AvoidWhiteBlock extends Game {
                     for (int z = room.zMin; z <= room.zMax; z++) {
                         room.level.setBlock(new Vector3(room.xMin, y, z), whiteWoolBlock);
                     }
-                    int z = new Random().nextInt(width);
+                    int z = new Random().nextInt(room.width);
                     room.level.setBlock(new Vector3(room.xMin, y, room.zMin + z), blackWoolBlock);
                     break;
                 }

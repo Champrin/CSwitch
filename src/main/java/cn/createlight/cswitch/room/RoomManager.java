@@ -2,6 +2,7 @@ package cn.createlight.cswitch.room;
 
 import cn.createlight.cswitch.CSwitch;
 import cn.createlight.cswitch.CSwitchGameType;
+import cn.createlight.cswitch.config.ConfigManager;
 import cn.createlight.cswitch.config.LanguageConfigKey;
 import cn.nukkit.Player;
 import cn.nukkit.block.Block;
@@ -118,7 +119,7 @@ public class RoomManager {
         String[] joinSignPoint = ((String) data.get(RoomConfigKey.JOIN_POINT.toConfigKey())).split(",");
         String[] ruleSignPoint = ((String) data.get(RoomConfigKey.RULE_POINT.toConfigKey())).split(",");
 
-        Config gameTipConfig = CSwitch.gameTipConfig;
+        Config gameTipConfig = ConfigManager.getConfig(ConfigManager.ConfigName.GAME_TIP);
 
         String gameType = CSwitchGameType.valueOf(
                 (String) data.get(RoomConfigKey.GAME_TYPE.toConfigKey())
@@ -207,7 +208,7 @@ public class RoomManager {
      */
     public static void changeSignText(String roomID) {
         Room room = rooms.get(roomID);
-        Config gameTipConfig = CSwitch.gameTipConfig;
+        Config gameTipConfig = ConfigManager.getConfig(ConfigManager.ConfigName.GAME_TIP);
 
         String gameType = room.gameType.toName();
 

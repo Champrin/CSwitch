@@ -1,5 +1,6 @@
 package cn.createlight.cswitch.game;
 
+import cn.createlight.cswitch.CSwitchGameType;
 import cn.nukkit.Player;
 import cn.nukkit.block.Block;
 import cn.nukkit.event.EventHandler;
@@ -20,7 +21,7 @@ public class HanoiTower extends Game implements Listener {
     @EventHandler
     public void onTouch(PlayerInteractEvent event) {
         // 判断是否在房间进行游戏
-        if (!this.gameType.equals("HanoiTower")) return;
+        if (this.room.gameType != CSwitchGameType.HANOI_TOWER) return;
         if (this.room.isFinished) return;
         if (!this.room.isStarted) return;
         Player player = event.getPlayer();
@@ -110,6 +111,44 @@ public class HanoiTower extends Game implements Listener {
     public void checkFinish() {
         if (this.room.point >= 3) {
             this.room.isFinished = true;
+        }
+    }
+
+    @Override
+    public void setArenaFrame(){
+        int ma = 0;
+        int aa = 1;
+        switch (room.direction) {
+            case X_PLUS:
+            case X_MINUS:
+                for (int x = room.xMin; x <= room.xMax; x++) {
+                    for (int y = room.yMin; y <= room.yMax; y++) {
+                        room.level.setBlock(new Vector3(x, y, room.zMin), Block.get(35, ma));
+                    }
+                    if (aa == 1) {
+                        ma = 15;
+                        aa = 2;
+                    } else {
+                        ma = 0;
+                        aa = 1;
+                    }
+                }
+                break;
+            case Z_PLUS:
+            case Z_MINUS:
+                for (int z = room.zMin; z <= room.zMax; z++) {
+                    for (int y = room.yMin; y <= room.yMax; y++) {
+                        room.level.setBlock(new Vector3(room.xMin, y, z), Block.get(35, ma));
+                    }
+                    if (aa == 1) {
+                        ma = 15;
+                        aa = 2;
+                    } else {
+                        ma = 0;
+                        aa = 1;
+                    }
+                }
+                break;
         }
     }
 

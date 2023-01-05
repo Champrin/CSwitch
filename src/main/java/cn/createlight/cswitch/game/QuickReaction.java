@@ -1,5 +1,6 @@
 package cn.createlight.cswitch.game;
 
+import cn.createlight.cswitch.CSwitchGameType;
 import cn.nukkit.Player;
 import cn.nukkit.block.Block;
 import cn.nukkit.event.EventHandler;
@@ -7,27 +8,30 @@ import cn.nukkit.event.player.PlayerInteractEvent;
 import cn.nukkit.math.Vector3;
 import cn.createlight.cswitch.room.Room;
 
-public class BeFaster extends Game {
+public class QuickReaction extends Game {
 
-    public BeFaster(Room room) {
+    public QuickReaction(Room room) {
         super(room);
     }
 
     @EventHandler
     public void onTouch(PlayerInteractEvent event) {
         // 房间游戏条件限制
-        if (!this.gameType.equals("BeFaster")) return;
+        if (this.room.gameType != CSwitchGameType.QUICK_REACTION) return;
         if (this.room.isFinished) return;
         if (!this.room.isStarted) return;
         Player player = event.getPlayer();
-        if (this.room.isInGame(player)) return;
+        if (!this.room.isInGame(player)) return;
+
+        // 满足判断条件，终止事件带来的其他影响
+        event.setCancelled(true);
+
         // 该类型游戏机制
         Block block = event.getBlock();
         if (block.getId() != 35) return;
         if (block.getDamage() == 0) return;
         if (!this.room.isInArena(block)) return;
 
-        event.setCancelled(true);
         this.room.point = room.point + 1;
         block.level.setBlock(block, Block.get(35, 0));
     }

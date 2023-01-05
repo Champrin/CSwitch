@@ -1,12 +1,12 @@
-package cn.createlight.cswitch.untils;
+package cn.createlight.cswitch.utils;
 
 
-import cn.createlight.cswitch.CSwitch;
+import cn.createlight.cswitch.config.ConfigManager;
 import cn.createlight.cswitch.config.LanguageConfigKey;
 
 public class Countdown {
 
-    private static final String tip = CSwitch.gameTipConfig.getString(LanguageConfigKey.GAME_PREPARE.toConfigKey());
+    private static final String tip = ConfigManager.getConfig(ConfigManager.ConfigName.GAME_TIP).getString(LanguageConfigKey.GAME_PREPARE.toConfigKey());
 
     public static String countDown(int number) {
         switch (number) {
@@ -23,7 +23,7 @@ public class Countdown {
             case 1:
                 return getNumber1();
             default:
-                return tip.replaceAll("%TIME%", String.valueOf(number));
+                return tip.replace("{TIME}", String.valueOf(number));
         }
     }
 

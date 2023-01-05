@@ -1,5 +1,6 @@
 package cn.createlight.cswitch.game;
 
+import cn.createlight.cswitch.CSwitchGameType;
 import cn.nukkit.Player;
 import cn.nukkit.block.Block;
 import cn.nukkit.block.BlockID;
@@ -20,7 +21,7 @@ public class LightsOut extends Game implements Listener {
     @EventHandler
     public void onTouch(PlayerInteractEvent event) {
         // 判断是否在房间进行游戏
-        if (!this.gameType.equals("LightsOut")) return;
+        if (this.room.gameType != CSwitchGameType.LIGHTS_OUT) return;
         if (this.room.isFinished) return;
         if (!this.room.isStarted) return;
         Player player = event.getPlayer();
@@ -89,7 +90,7 @@ public class LightsOut extends Game implements Listener {
 
     @Override
     public void checkFinish() {
-        if (this.room.point >= area) {
+        if (this.room.point >= room.area) {
             this.room.isFinished = true;
         }
     }

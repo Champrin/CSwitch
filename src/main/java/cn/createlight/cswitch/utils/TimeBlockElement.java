@@ -1,4 +1,4 @@
-package cn.createlight.cswitch.untils;
+package cn.createlight.cswitch.utils;
 
 import cn.nukkit.block.Block;
 import cn.nukkit.scheduler.Task;

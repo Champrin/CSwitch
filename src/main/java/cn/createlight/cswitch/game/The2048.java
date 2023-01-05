@@ -1,5 +1,6 @@
 package cn.createlight.cswitch.game;
 
+import cn.createlight.cswitch.CSwitchGameType;
 import cn.nukkit.Player;
 import cn.nukkit.event.EventHandler;
 import cn.nukkit.event.player.PlayerInteractEvent;
@@ -9,13 +10,13 @@ import cn.createlight.cswitch.room.Room;
 import java.util.HashMap;
 import java.util.Random;
 
-public class C2048 extends Game {
+public class The2048 extends Game {
 
     private int maxNum;
     private HashMap<Integer, Integer> grade = new HashMap<>();
     private HashMap<Integer, Integer> nextGrade = new HashMap<>();
 
-    public C2048(Room room) {
+    public The2048(Room room) {
         super(room);
         this.grade.put(0, 1);
         this.grade.put(8, 2);
@@ -45,7 +46,7 @@ public class C2048 extends Game {
     @EventHandler
     public void onTouch(PlayerInteractEvent event) {
         // 判断是否在房间进行游戏
-        if (!this.gameType.equals("C2048")) return;
+        if (this.room.gameType != CSwitchGameType.THE_2048) return;
         if (this.room.isFinished) return;
         if (!this.room.isStarted) return;
         Player player = event.getPlayer();

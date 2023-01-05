@@ -1,4 +1,4 @@
-package cn.createlight.cswitch.untils;
+package cn.createlight.cswitch.utils;
 
 import cn.nukkit.Server;
 import cn.nukkit.plugin.Plugin;

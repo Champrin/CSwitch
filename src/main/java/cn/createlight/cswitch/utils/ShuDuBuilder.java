@@ -1,6 +1,5 @@
-package cn.createlight.cswitch.untils;
+package cn.createlight.cswitch.utils;
 
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Random;
 

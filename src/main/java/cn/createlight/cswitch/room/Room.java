@@ -6,9 +6,9 @@ import cn.createlight.cswitch.game.*;
 import cn.createlight.cswitch.schedule.RoomSchedule;
 import cn.createlight.cswitch.schedule.RoomSchedule_2;
 import cn.createlight.cswitch.schedule.RoomSchedule_3;
+import cn.createlight.cswitch.utils.SavePlayerBag;
 import cn.nukkit.AdventureSettings;
 import cn.nukkit.Player;
-import cn.nukkit.block.Block;
 import cn.nukkit.entity.Entity;
 import cn.nukkit.event.EventHandler;
 import cn.nukkit.event.EventPriority;
@@ -23,7 +23,7 @@ import cn.nukkit.event.player.PlayerQuitEvent;
 import cn.nukkit.item.Item;
 import cn.nukkit.level.Level;
 import cn.nukkit.math.Vector3;
-import cn.nukkit.nbt.tag.CompoundTag;
+import cn.nukkit.utils.Config;
 
 import java.util.*;
 
@@ -32,9 +32,9 @@ public class Room implements Listener {
 
     public CSwitch plugin = CSwitch.getInstance();
 
-    public String id; // 房间id
+    public String roomID; // 房间id
 
-    public LinkedHashMap<String, Object> data; // 房间数据
+    // public LinkedHashMap<String, Object> data; // 房间数据
 
     public Game gameTypeObject; // 游戏类型对象
 
@@ -42,7 +42,7 @@ public class Room implements Listener {
 
     public Player gamePlayer = null; // 游戏玩家
 
-    public ArrayList<String> playerBag = new ArrayList<>(); // 玩家背包保存
+    public ArrayList<String> playerBag; // 玩家背包保存
 
     public boolean isStarted = false; // 是否开始游戏
 
@@ -56,6 +56,13 @@ public class Room implements Listener {
 
     public int xMin, xMax, yMin, yMax, zMin, zMax; // 游戏区域
 
+    public int width, length, area;
+
+    public int prepareTime; // 准备时间
+    public int gameTime;
+
+    public ArrayList<Object> additions;
+
     //TODO
     public enum Direction {
         X_PLUS, // x+
@@ -66,23 +73,36 @@ public class Room implements Listener {
 
     public Direction direction; // 游戏区域方向
 
+    public String[] arenaPoint1, arenaPoint2;
+
     public Room(String id) {
-        this.id = id;
-        this.data = RoomManager.getRoomData(id);
-        this.gameType = CSwitchGameType.valueOf((String) data.get(RoomConfigKey.GAME_TYPE.toConfigKey()));
+        this.roomID = id;
+        // this.data = RoomManager.getRoomData(id);
+        Config roomConfig = RoomManager.getRoomConfig(id);
+        //TODO 检查GameType是不是按toString存的
+        this.gameType = CSwitchGameType.valueOf(roomConfig.getString(RoomConfigKey.GAME_TYPE.toConfigKey()));
 
-        String[] p1 = ((String) data.get("pos1")).split(",");
-        String[] p2 = ((String) data.get("pos2")).split(",");
+        this.arenaPoint1 = roomConfig.getString(RoomConfigKey.ARENA_POINT1.toConfigKey()).split(",");
+        this.arenaPoint2 = roomConfig.getString(RoomConfigKey.ARENA_POINT2.toConfigKey()).split(",");
 
-        this.direction = Direction.valueOf((String) data.get("direction"));
-        this.level = this.plugin.getServer().getLevelByName((String) data.get("room_world"));
+        this.level = this.plugin.getServer().getLevelByName(roomConfig.getString(RoomConfigKey.ROOM_WORLD.toConfigKey()));
         //TODO 创建房间时就写好min和max
-        this.xMin = (Math.min(Integer.parseInt(p1[0]), Integer.parseInt(p2[0])));
-        this.xMax = (Math.max(Integer.parseInt(p1[0]), Integer.parseInt(p2[0])));
-        this.yMin = (Math.min(Integer.parseInt(p1[1]), Integer.parseInt(p2[1])));
-        this.yMax = (Math.max(Integer.parseInt(p1[1]), Integer.parseInt(p2[1])));
-        this.zMin = (Math.min(Integer.parseInt(p1[2]), Integer.parseInt(p2[2])));
-        this.zMax = (Math.max(Integer.parseInt(p1[2]), Integer.parseInt(p2[2])));
+        this.xMin = (Math.min(Integer.parseInt(arenaPoint1[0]), Integer.parseInt(arenaPoint2[0])));
+        this.xMax = (Math.max(Integer.parseInt(arenaPoint1[0]), Integer.parseInt(arenaPoint2[0])));
+        this.yMin = (Math.min(Integer.parseInt(arenaPoint1[1]), Integer.parseInt(arenaPoint2[1])));
+        this.yMax = (Math.max(Integer.parseInt(arenaPoint1[1]), Integer.parseInt(arenaPoint2[1])));
+        this.zMin = (Math.min(Integer.parseInt(arenaPoint1[2]), Integer.parseInt(arenaPoint2[2])));
+        this.zMax = (Math.max(Integer.parseInt(arenaPoint1[2]), Integer.parseInt(arenaPoint2[2])));
+
+        this.area = roomConfig.getInt(RoomConfigKey.AREA.toConfigKey());
+        this.width = roomConfig.getInt(RoomConfigKey.WIDTH.toConfigKey());
+        this.length = roomConfig.getInt(RoomConfigKey.LENGTH.toConfigKey());
+        this.direction = Direction.valueOf(roomConfig.getString(RoomConfigKey.DIRECTION.toConfigKey()));
+
+        this.prepareTime = roomConfig.getInt(RoomConfigKey.PREPARE_TIME.toConfigKey());
+        this.gameTime = roomConfig.getInt(RoomConfigKey.GAME_TIME.toConfigKey());
+
+        this.additions = new ArrayList<Object>(roomConfig.getList(RoomConfigKey.ADDITION.toConfigKey()));
 
         switch (gameType) {
             case CRAZY_CLICK:
@@ -96,9 +116,6 @@ public class Room implements Listener {
                 break;
         }
 
-        setArenaFrame();
-
-
         switch (gameType) {
             case LIGHTS_OUT:
                 this.gameTypeObject = new LightsOut(this);
@@ -110,7 +127,7 @@ public class Room implements Listener {
                 this.gameTypeObject = new Jigsaw(this);
                 break;
             case THE_2048:
-                this.gameTypeObject = new C2048(this);
+                this.gameTypeObject = new The2048(this);
                 break;
             case SUDOKU:
                 this.gameTypeObject = new Sudoku(this);
@@ -134,7 +151,7 @@ public class Room implements Listener {
                 this.gameTypeObject = new CrazyClick(this);
                 break;
             case QUICK_REACTION:
-                this.gameTypeObject = new BeFaster(this);
+                this.gameTypeObject = new QuickReaction(this);
                 break;
             case CARD_MEMORY:
                 this.gameTypeObject = new CardMemory(this);
@@ -145,244 +162,9 @@ public class Room implements Listener {
             case TETRIS:
                 this.gameTypeObject = null;
         }
-        ;
 
-        if (!((Boolean) data.get("arena"))) {
+        if (!roomConfig.getBoolean(RoomConfigKey.BUILD_FINISH.toConfigKey())) {
             gameTypeObject.buildArena();
-        }
-    }
-
-    //这里使用了若水的保存物品NBT的方法
-    private static byte[] hexStringToBytes(String hexString) {
-        if (hexString == null || hexString.equals("")) {
-            return null;
-        }
-        hexString = hexString.toUpperCase();
-        int length = hexString.length() / 2;
-        char[] hexChars = hexString.toCharArray();
-        byte[] d = new byte[length];
-        for (int i = 0; i < length; i++) {
-            int pos = i * 2;
-            d[i] = (byte) (charToByte(hexChars[pos]) << 4 | charToByte(hexChars[pos + 1]));
-        }
-        return d;
-    }
-
-    private static byte charToByte(char c) {
-        return (byte) "0123456789ABCDEF".indexOf(c);
-    }
-
-    private static String bytesToHexString(byte[] src) {
-        StringBuilder stringBuilder = new StringBuilder();
-        if (src == null || src.length <= 0) {
-            return null;
-        }
-        for (byte aSrc : src) {
-            int v = aSrc & 0xFF;
-            String hv = Integer.toHexString(v);
-            if (hv.length() < 2) {
-                stringBuilder.append(0);
-            }
-            stringBuilder.append(hv);
-        }
-        return stringBuilder.toString();
-    }
-
-    public void saveBag() {
-        for (int i = 0; i < gamePlayer.getInventory().getSize() + 4; i++) {
-            Item item = gamePlayer.getInventory().getItem(i);
-            String nbt = "null";
-            if (item.hasCompoundTag()) {
-                nbt = bytesToHexString(item.getCompoundTag());
-            }
-            playerBag.add(item.getId() + "-" + item.getDamage() + "-" + item.getCount() + "-" + nbt);
-        }
-        gamePlayer.getInventory().clearAll();
-    }
-
-    public void loadBag() {
-        gamePlayer.getInventory().clearAll();
-        for (int i = 0; i < gamePlayer.getInventory().getSize() + 4; i++) {
-            String[] a = playerBag.get(i).split("-");
-            Item item = new Item(Integer.parseInt(a[0]), Integer.parseInt(a[1]), Integer.parseInt(a[2]));
-            if (!a[3].equals("null")) {
-                CompoundTag tag = Item.parseCompoundTag(hexStringToBytes(a[3]));
-                item.setNamedTag(tag);
-            }
-            gamePlayer.getInventory().setItem(i, item);
-        }
-        playerBag.clear();
-    }
-
-    public void setArenaFrame() {
-        switch (gameType) {
-            case SUDOKU: {
-                int a = 0, b = 0;
-                switch (direction) {
-                    case X_PLUS: {
-                        for (int y = yMin; y <= yMax; y++) {
-                            for (int x = xMin; x <= xMax; x++) {
-                                level.setBlock(new Vector3(x, y, zMin), Block.get(35, 15));
-                            }
-                        }
-                        for (int y = yMax - 1; y >= yMin + 1; y--) {
-                            ++b;
-                            for (int x = xMin + 1; x <= zMax - 1; x++) {
-                                level.setBlock(new Vector3(x, y, zMin), Block.get(0, 0));
-                                ++a;
-                                if (a == 3) {
-                                    ++x;
-                                    a = 0;
-                                }
-                            }
-                            if (b == 3) {
-                                --y;
-                                b = 0;
-                            }
-                        }
-                    }
-                    break;
-                    case X_MINUS: {
-                        for (int y = yMin; y <= yMax; y++) {
-                            for (int x = xMin; x <= xMax; x++) {
-                                level.setBlock(new Vector3(x, y, zMin), Block.get(35, 15));
-                            }
-                        }
-                        for (int y = yMax - 1; y >= yMin + 1; y--) {
-                            ++b;
-                            for (int x = xMax - 1; x >= xMin + 1; x--) {
-                                level.setBlock(new Vector3(x, y, zMin), Block.get(0, 0));
-                                ++a;
-                                if (a == 3) {
-                                    --x;
-                                    a = 0;
-                                }
-                            }
-                            if (b == 3) {
-                                --y;
-                                b = 0;
-                            }
-                        }
-                    }
-                    break;
-                    case Z_PLUS: {
-                        for (int y = yMin; y <= yMax; y++) {
-                            for (int z = zMin; z <= zMax; z++) {
-                                level.setBlock(new Vector3(xMin, y, z), Block.get(35, 15));
-                            }
-                        }
-                        for (int y = yMax - 1; y >= yMin + 1; y--) {
-                            ++b;
-                            for (int z = zMin + 1; z <= zMax - 1; z++) {
-                                level.setBlock(new Vector3(xMin, y, z), Block.get(0, 0));
-                                ++a;
-                                if (a == 3) {
-                                    ++z;
-                                    a = 0;
-                                }
-                            }
-                            if (b == 3) {
-                                --y;
-                                b = 0;
-                            }
-                        }
-                    }
-                    break;
-                    case Z_MINUS: {
-                        for (int y = yMin; y <= yMax; y++) {
-                            for (int z = zMin; z <= zMax; z++) {
-                                level.setBlock(new Vector3(xMin, y, z), Block.get(35, 15));
-                            }
-                        }
-                        for (int y = yMax - 1; y >= yMin + 1; y--) {
-                            ++b;
-                            for (int z = zMax - 1; z >= zMin + 1; z--) {
-                                level.setBlock(new Vector3(xMin, y, z), Block.get(0, 0));
-                                ++a;
-                                if (a == 3) {
-                                    --z;
-                                    a = 0;
-                                }
-                            }
-                            if (b == 3) {
-                                --y;
-                                b = 0;
-                            }
-                        }
-                    }
-                }
-            }
-            break;
-            case CRAZY_CLICK:
-                level.setBlock(new Vector3(xMin, yMin, zMin), Block.get(57, 0));
-                break;
-            case HANOI_TOWER: {
-                int ma = 0;
-                int aa = 1;
-                switch (direction) {
-                    case X_PLUS:
-                        break;
-                    case X_MINUS:
-                        for (int x = xMin; x <= xMax; x++) {
-                            for (int y = yMin; y <= yMax; y++) {
-                                level.setBlock(new Vector3(x, y, zMin), Block.get(35, ma));
-                            }
-                            if (aa == 1) {
-                                ma = 15;
-                                aa = 2;
-                            } else {
-                                ma = 0;
-                                aa = 1;
-                            }
-                        }
-                        break;
-                    case Z_PLUS:
-                        break;
-                    case Z_MINUS:
-                        for (int z = zMin; z <= zMax; z++) {
-                            for (int y = yMin; y <= yMax; y++) {
-                                level.setBlock(new Vector3(xMin, y, z), Block.get(35, ma));
-                            }
-                            if (aa == 1) {
-                                ma = 15;
-                                aa = 2;
-                            } else {
-                                ma = 0;
-                                aa = 1;
-                            }
-                        }
-                        break;
-                }
-            }
-            default: {
-                int id = 35, mate = 5;
-                if (gameType == CSwitchGameType.JIGSAW || gameType == CSwitchGameType.N_PUZZLE || gameType == CSwitchGameType.THE_2048) {
-                    id = 20;
-                    mate = 0;
-                } else if (gameType == CSwitchGameType.QUICK_REACTION || gameType == CSwitchGameType.CARD_MEMORY) {
-                    mate = 0;
-                }
-                switch (direction) {
-                    case X_PLUS:
-                        break;
-                    case X_MINUS:
-                        for (int y = yMin; y <= yMax; y++) {
-                            for (int x = xMin; x <= xMax; x++) {
-                                level.setBlock(new Vector3(x, y, zMin), Block.get(id, mate));
-                            }
-                        }
-                        break;
-                    case Z_PLUS:
-                        break;
-                    case Z_MINUS:
-                        for (int y = yMin; y <= yMax; y++) {
-                            for (int z = zMin; z <= zMax; z++) {
-                                level.setBlock(new Vector3(xMin, y, z), Block.get(id, mate));
-                            }
-                        }
-                        break;
-                }
-            }
         }
     }
 
@@ -468,8 +250,8 @@ public class Room implements Listener {
      */
     public void startGame() {
         this.isStarted = true;
-        RoomManager.changeSignText(id);
-        saveBag();
+        RoomManager.changeSignText(roomID);
+        playerBag = SavePlayerBag.saveBag(gamePlayer);
         addItem();
         gameTypeObject.buildOperation(false);
         gamePlayer.getAdventureSettings().set(AdventureSettings.Type.ALLOW_FLIGHT, true);
@@ -482,18 +264,17 @@ public class Room implements Listener {
     public void stopGame() {
         this.isStarted = false;
         if (gamePlayer != null) {
-            if (!playerBag.isEmpty()) loadBag();
+            SavePlayerBag.loadBag(gamePlayer, playerBag);
             gamePlayer.sendMessage(">>>   游戏结束");
             gamePlayer.getAdventureSettings().set(AdventureSettings.Type.ALLOW_FLIGHT, false);
             gamePlayer.getAdventureSettings().update();
         }
 
-        RoomManager.changeSignText(id);
+        RoomManager.changeSignText(roomID);
 
         this.gamePlayer = null;
         this.isFinished = false;
         this.point = 0;
-        this.setArenaFrame();
         gameTypeObject.buildArena();
         //TODO 记录玩家分数
     }
@@ -503,12 +284,12 @@ public class Room implements Listener {
      */
     public void serverStop() {
         if (gamePlayer != null) {
-            if (!playerBag.isEmpty()) loadBag();
+            SavePlayerBag.loadBag(gamePlayer, playerBag);
             gamePlayer.sendMessage(">>>   游戏结束");
             gamePlayer.getAdventureSettings().set(AdventureSettings.Type.ALLOW_FLIGHT, false);
             gamePlayer.getAdventureSettings().update();
         }
-        RoomManager.changeSignText(id);
+        RoomManager.changeSignText(roomID);
     }
 
     /**

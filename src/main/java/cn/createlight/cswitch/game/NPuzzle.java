@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 
-public class BlockPlay extends Game implements Listener {
+public class NPuzzle extends Game implements Listener {
 
     private int size; //游戏区域为size*size
 
@@ -30,14 +30,14 @@ public class BlockPlay extends Game implements Listener {
             Block.get(35, 11)
     ));
 
-    public BlockPlay(Room room) {
+    public NPuzzle(Room room) {
         super(room);
     }
 
     @EventHandler
     public void onTouch(PlayerInteractEvent event) {
         // 房间游戏条件限制
-        if (this.gameType != CSwitchGameType.N_PUZZLE) return;
+        if (this.room.gameType != CSwitchGameType.N_PUZZLE) return;
         if (this.room.isFinished) return;
         if (!this.room.isStarted) return;
         Player player = event.getPlayer();
@@ -89,7 +89,7 @@ public class BlockPlay extends Game implements Listener {
             case X_PLUS:
                 for (int y = room.yMax; y >= room.yMin; y--) {
                     for (int x = room.xMin; x <= room.xMax; x++) {
-                        if (correctLayout.get(index) != level.getBlock(x, y, room.zMin)) {
+                        if (correctLayout.get(index) != room.level.getBlock(x, y, room.zMin)) {
                             flag = false;
                             break;
                         }
@@ -100,7 +100,7 @@ public class BlockPlay extends Game implements Listener {
             case X_MINUS:
                 for (int y = room.yMax; y >= room.yMin; y--) {
                     for (int x = room.xMax; x >= room.xMin; x--) {
-                        if (correctLayout.get(index) != level.getBlock(x, y, room.zMin)) {
+                        if (correctLayout.get(index) != room.level.getBlock(x, y, room.zMin)) {
                             flag = false;
                             break;
                         }
@@ -111,7 +111,7 @@ public class BlockPlay extends Game implements Listener {
             case Z_PLUS:
                 for (int y = room.yMax; y >= room.yMin; y--) {
                     for (int z = room.zMin; z <= room.zMax; z++) {
-                        if (correctLayout.get(index) != level.getBlock(room.xMin, y, z)) {
+                        if (correctLayout.get(index) != room.level.getBlock(room.xMin, y, z)) {
                             flag = false;
                             break;
                         }
@@ -122,7 +122,7 @@ public class BlockPlay extends Game implements Listener {
             case Z_MINUS:
                 for (int y = room.yMax; y >= room.yMin; y--) {
                     for (int z = room.zMax; z >= room.zMin; z--) {
-                        if (correctLayout.get(index) != level.getBlock(room.xMin, y, z)) {
+                        if (correctLayout.get(index) != room.level.getBlock(room.xMin, y, z)) {
                             flag = false;
                             break;
                         }
